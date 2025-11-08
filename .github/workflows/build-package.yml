@@ -1,0 +1,56 @@
+# Copyright (C) Krzysztof Jakubowski <nadult@fastmail.fm>
+# This file is part of libfwk. See license.txt for details.
+
+name: Build dependency
+
+on:
+  workflow_dispatch:
+    inputs:
+      dependency:
+        required: true
+        type: string
+      runner_os:
+        required: true
+        type: string
+  workflow_call:
+    inputs:
+      dependency:
+        required: true
+        type: string
+      runner_os:
+        required: true
+        type: string
+
+env:
+  PYTHONUNBUFFERED: 1
+
+jobs:
+  build-dependency:
+    runs-on: ${{ inputs.runner_os }}
+    steps:
+    - uses: actions/checkout@v4
+      with:
+        submodules: 'true'
+
+    - name: Prepare Python requirements.txt
+      run: echo "conan" >> requirements.txt
+    - name: Set up Python
+      uses: actions/setup-python@v5
+      with:
+        python-version: '3.12'
+        architecture: 'x64'
+        cache: 'pip'
+    - name: Install Python dependencies
+      run: pip install -r requirements.txt
+
+    - name: Build dependency package
+      run: |
+        python tools/configure.py package-deps ${{ inputs.dependency }}
+
+    - name: Upload artifact
+      uses: actions/upload-artifact@v4
+      with:
+        name: ${{ inputs.runner_os }}-${{ inputs.dependency }}
+        path: dependencies/*.zip
+        compression-level: 0
+        retention-days: 30
