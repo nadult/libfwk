@@ -33,7 +33,7 @@ jobs:
 
       - name: Configure libfwk, tests & tools
         run: |
-          python tools\configure.py --build-type Debug -DFWK_UNITY_BUILD=ON
+          python tools\configure.py -G ninja-clang-cl -T Debug -DFWK_UNITY_BUILD=ON
 
       - name: Build libfwk, tests & tools
         run: |

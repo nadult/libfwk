@@ -2,6 +2,7 @@
 
 import enum
 import argparse, os
+import pathlib
 import subprocess
 from dataclasses import dataclass, field
 from typing import Optional
@@ -28,7 +29,7 @@ def find_visual_studio_installation() -> str:
 def find_vcvars64_bat(visual_studio_path: str = None) -> Optional[str]:
     path = os.path.join(visual_studio_path, "VC", "Auxiliary", "Build", "vcvars64.bat")
     if os.path.exists(path):
-        return path
+        return pathlib.Path(path).as_posix()
     return None
 
 
@@ -69,15 +70,61 @@ def visual_studio_year_version(path: str, env: dict) -> Optional[tuple[int, int]
     return None
 
 
+@dataclass
+class BuildPlatformInfo:
+    vs_year: Optional[int] = None
+    vs_major: Optional[int] = None
+    vs_env: Optional[dict] = None
+
+
+def windows_build_platform_info(vs_path: Optional[str] = None) -> BuildPlatformInfo:
+    vs_path = vs_path or find_visual_studio_installation()
+    vcvars64_path = find_vcvars64_bat(vs_path) if vs_path else None
+    if not vs_path or not vcvars64_path:
+        raise RuntimeError("Visual Studio installation not found or vcvars64.bat is missing.")
+    vs_env = get_vcvars_environment(vcvars64_path)
+    vs_year_version = visual_studio_year_version(vs_path, vs_env)
+    if vs_year_version is None or vs_year_version[0] < 2022:
+        raise RuntimeError("Visual Studio 2022 or later is required.")
+    return BuildPlatformInfo(vs_year=vs_year_version[0], vs_major=vs_year_version[1], vs_env=vs_env)
+
+
+def build_platform_info(args: argparse.Namespace) -> BuildPlatformInfo:
+    if os.name == "nt":
+        return windows_build_platform_info(args.vs_path)
+    return BuildPlatformInfo()
+
+
 class Generator(enum.Enum):
     NINJA_CLANG_CL = "ninja-clang-cl"
     VS_CLANG_CL = "vs-clang-cl"
+    DEFAULT = "default"
 
 
 def valid_generators() -> list[str]:
+    generators = [Generator.DEFAULT.value]
     if os.name == "nt":
-        return [Generator.NINJA_CLANG_CL.value, Generator.VS_CLANG_CL.value]
-    return []
+        generators += [Generator.NINJA_CLANG_CL.value, Generator.VS_CLANG_CL.value]
+    return generators
+
+
+def generator_options(
+    generator: Generator, platform_info: Optional[BuildPlatformInfo] = None
+) -> dict:
+    options = []
+    if generator == Generator.NINJA_CLANG_CL:
+        options += ["-G", "Ninja"]
+        options += ["-DCMAKE_C_COMPILER=clang-cl"]
+        options += ["-DCMAKE_CXX_COMPILER=clang-cl"]
+    elif generator == Generator.VS_CLANG_CL:
+        assert platform_info is not None
+        generator_name = f"Visual Studio {platform_info.vs_major} {platform_info.vs_year}"
+        options += ["-G", generator_name]
+        options += ["-DCMAKE_C_COMPILER=clang-cl"]
+        options += ["-DCMAKE_CXX_COMPILER=clang-cl"]
+    else:
+        assert generator == Generator.DEFAULT
+    return options
 
 
 class BuildType(enum.Enum):
@@ -87,52 +134,38 @@ class BuildType(enum.Enum):
 
 
 @dataclass
-class BuildConfig:
+class CMakeConfig:
     source_dir: str
     build_dir: str
     build_type: Optional[BuildType] = BuildType.DEBUG
-    generator: Optional[Generator] = Generator.NINJA_CLANG_CL
+    generator: Optional[Generator] = Generator.DEFAULT
     vs_path: Optional[str] = None
     cmake_defines: dict = field(default_factory=dict)
 
 
-def configure_windows(build_config: BuildConfig):
-    vs_path = build_config.vs_path or find_visual_studio_installation()
-    vcvars64_path = find_vcvars64_bat(vs_path) if vs_path else None
-    if not vs_path or not vcvars64_path:
-        print("Visual Studio installation not found or vcvars64.bat is missing.")
-        exit(1)
-    vs_env = get_vcvars_environment(vcvars64_path)
-    vs_year_version = visual_studio_year_version(vs_path, vs_env)
-    if vs_year_version is None or vs_year_version[0] < 2022:
-        print("Visual Studio 2022 or later is required.")
-        exit(1)
-
-    if build_config.generator == Generator.NINJA_CLANG_CL:
-        generator = "Ninja"
-    else:
-        generator = f"Visual Studio {vs_year_version[1]} {vs_year_version[0]}"
-
-    cmd = ["cmake", "-G", generator, "--fresh"]
-    cmd += ["-S", build_config.source_dir, "-B", build_config.build_dir]
-    cmd += ["-DCMAKE_C_COMPILER=clang-cl", "-DCMAKE_CXX_COMPILER=clang-cl"]
-    cmd += [f"-DCMAKE_BUILD_TYPE={build_config.build_type.value}"]
-    for key, value in build_config.cmake_defines.items():
+def configure_windows(cmake_config: CMakeConfig):
+    platform_info = windows_build_platform_info(cmake_config.vs_path)
+    cmd = ["cmake", "--fresh"]
+    cmd += generator_options(cmake_config.generator, platform_info)
+    cmd += ["-S", cmake_config.source_dir, "-B", cmake_config.build_dir]
+    cmd += [f"-DCMAKE_BUILD_TYPE={cmake_config.build_type.value}"]
+    for key, value in cmake_config.cmake_defines.items():
         cmd.append(f"-D{key}={value}")
     print("Running CMake with command:", " ".join(cmd))
-    subprocess.run(cmd, env=vs_env, check=True)
+    subprocess.run(cmd, env=platform_info.vs_env, check=True)
 
 
 def parse_arguments() -> argparse.Namespace:
     parser = argparse.ArgumentParser(
         prog="configure",
-        description="Helper tool for easier environment setup for libfwk-based projects."
+        description="Helper tool for easier environment setup for libfwk-based projects. "
         "Currently it's mainly useful on Windows to properly setup ninja or VS-based builds.",
         formatter_class=argparse.ArgumentDefaultsHelpFormatter,
     )
 
     parser.add_argument("--build-dir", type=str, default="build")
     parser.add_argument(
+        "-T",
         "--build-type",
         type=str,
         choices=[bt.value for bt in BuildType],
@@ -140,13 +173,13 @@ def parse_arguments() -> argparse.Namespace:
         help="Build type.",
     )
 
-    generator_choices = valid_generators()
     parser.add_argument(
+        "-G",
         "--generator",
         type=str,
-        choices=generator_choices,
-        default=generator_choices[0] if generator_choices else None,
-        help="CMake generator+compiler set to use.",
+        choices=valid_generators(),
+        default=Generator.DEFAULT.value,
+        help="CMake generator and compiler set to use.",
     )
     if os.name == "nt":
         parser.add_argument(
@@ -155,6 +188,9 @@ def parse_arguments() -> argparse.Namespace:
             default=None,
             help="Path to Visual Studio installation "
             "(optional, can be used when installed at a non-standard path).",
+        )
+        parser.add_argument(
+            "--find-vcvars", action="store_true", help="Find and print path to vcvars64.bat."
         )
 
     parser.add_argument(
@@ -172,7 +208,7 @@ def main():
     args = parse_arguments()
     source_dir = os.path.abspath(os.getcwd())
     build_dir = os.path.abspath(args.build_dir) or os.path.join(source_dir, "build")
-    build_config = BuildConfig(
+    cmake_config = CMakeConfig(
         source_dir=source_dir,
         build_dir=build_dir,
         build_type=BuildType(args.build_type),
@@ -181,8 +217,14 @@ def main():
         cmake_defines={k: v for k, v in (define.split("=", 1) for define in args.cmake_defines)},
     )
 
+    if args.find_vcvars and os.name == "nt":
+        vs_path = cmake_config.vs_path or find_visual_studio_installation()
+        vcvars64_path = find_vcvars64_bat(vs_path) if vs_path else None
+        print(vcvars64_path if vcvars64_path else "vcvars64.bat not found.")
+        return
+
     if os.name == "nt":
-        configure_windows(build_config)
+        configure_windows(cmake_config)
 
 
 if __name__ == "__main__":

@@ -6,14 +6,25 @@
 import enum
 import argparse, hashlib, json, shutil, os, re, ssl, subprocess
 from dataclasses import dataclass, field
+import sys
 from urllib.parse import urlparse
 from typing import Optional
 
-# TODO: disable python print caching at least on github
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+from configure import (
+    Generator,
+    BuildPlatformInfo,
+    generator_options,
+    valid_generators,
+    build_platform_info,
+)
+
 # TODO: better naming, especially differentiation between packages which can be downloaded
 # from potentially unsafe sources (like libfwk github) from those which can be built locally
 # or downloaded from conan center.
 
+# TODO: iterator_debug_level in shaderc-combined
+# TODO: merge install_deps.py into configure.py ?
 # TODO: Fix shaderc-combined: it's too large... unity-builds for spirv-opt?
 # TODO: better printing for conan command
 # TODO: verify that libfwk is buildable with built dependencies? that would be costly?
@@ -91,12 +102,10 @@ def print_error(text: str):
     print_color(text, Color.RED, Style.BOLD)
 
 
-def copy_subdirs(package_name: str, dst_dir: str, src_dir: str, subdirs: list[str]):
+def copy_subdirs(dst_dir: str, src_dir: str, subdirs: list[str]):
     for subdir in subdirs:
         dst_subdir = os.path.join(dst_dir, subdir)
         src_subdir = os.path.join(src_dir, subdir)
-        if package_name == "freetype" and subdir == "include":
-            src_subdir = os.path.join(src_subdir, "freetype2")
         os.makedirs(dst_subdir, exist_ok=True)
         if os.path.isdir(src_subdir):
             shutil.copytree(src_subdir, dst_subdir, dirs_exist_ok=True)
@@ -490,13 +499,19 @@ class BuildOptions:
     clean_build: bool = False
     skip_download_source: bool = False
     deps_json_dir: Optional[str] = None
+    generator: Generator = Generator.DEFAULT
+    build_platform_info: Optional[BuildPlatformInfo] = None
 
     @staticmethod
-    def parse(args: argparse.Namespace, deps_json_dir: str) -> "BuildOptions":
+    def initialize(args: argparse.Namespace, deps_json_dir: str) -> "BuildOptions":
         self = BuildOptions()
         self.clean_build = args.clean_build
         self.skip_download_source = args.skip_download_source
         self.deps_json_dir = deps_json_dir
+        self.generator = Generator(args.generator) if args.generator else Generator.DEFAULT
+        build_platform_info_required = not (os.name == "nt" and self.generator == Generator.DEFAULT)
+        if build_platform_info_required:
+            self.build_platform_info = build_platform_info(args)
         return self
 
 
@@ -534,7 +549,7 @@ def build_package(
         package_path = conan_get_package_path(package)
 
         print(f"Installing {package.pattern()} from: {package_path}")
-        copy_subdirs(package.name, target_dir, package_path, ["include", "lib", "bin"])
+        copy_subdirs(target_dir, package_path, ["include", "lib", "bin"])
         return package.version
 
     cmake_recipe = find_cmake_recipe(deps, package_name, options.platform)
@@ -718,15 +733,25 @@ def github_update_source(
 
 
 def configure_cmake_package(
-    cmake_build: CMakeBuild, source_dir: str, build_dir: str, install_dir: str
+    cmake_build: CMakeBuild,
+    options: BuildOptions,
+    source_dir: str,
+    build_dir: str,
+    install_dir: str,
 ):
     os.makedirs(build_dir, exist_ok=True)
     cmake_cmd = ["cmake", "-S", source_dir, "-DCMAKE_INSTALL_PREFIX=" + install_dir]
     cmake_cmd += [f"-D{key}={value}" for key, value in cmake_build.cmake_options.items()]
     cmake_cmd += [f"-DCMAKE_BUILD_TYPE={cmake_build.build_type}"]
+    cmake_cmd += generator_options(options.generator, options.build_platform_info)
 
     print("CMake command: " + str(cmake_cmd))
-    subprocess.run(cmake_cmd, cwd=build_dir, check=True)
+    env = (
+        options.build_platform_info.vs_env
+        if os.name == "nt" and options.build_platform_info
+        else None
+    )
+    subprocess.run(cmake_cmd, cwd=build_dir, env=env, check=True)
 
 
 def build_cmake_package(
@@ -771,7 +796,7 @@ def build_cmake_package(
         prepare_dir(build_sub_dir, options.clean_build, False)
         prepare_dir(install_sub_dir, True, False)
 
-        configure_cmake_package(build, src_sub_dir, build_sub_dir, install_sub_dir)
+        configure_cmake_package(build, options, src_sub_dir, build_sub_dir, install_sub_dir)
 
         print_step(f"Running build: {build.full_name}")
         build_cmd = ["cmake", "--build", ".", "--config", build.build_type, "--target", "install"]
@@ -903,6 +928,23 @@ def parse_arguments() -> argparse.Namespace:
             action="store_true",
             help="Skip downloading sources if they are already present in the source directory.",
         )
+        generators = valid_generators()
+        sub_parser.add_argument(
+            "-G",
+            "--generator",
+            type=str,
+            choices=generators,
+            default=generators[0],
+            help="CMake generator and compiler set to use.",
+        )
+        if os.name == "nt":
+            sub_parser.add_argument(
+                "--vs-path",
+                type=str,
+                default=None,
+                help="Path to Visual Studio installation "
+                "(optional, can be used when installed at a non-standard path).",
+            )
 
     for sub_parser, help_text in [
         (
@@ -975,7 +1017,7 @@ def main():
 
     elif args.command == "build":
         build_dir = os.path.join(libfwk_path(), "build", "dependencies")
-        build_options = BuildOptions.parse(args, deps_json_dir)
+        build_options = BuildOptions.initialize(args, deps_json_dir)
 
         prepare_target_dir(target_dir, args.clean)
         for dep in selected_deps:
@@ -984,7 +1026,7 @@ def main():
 
     elif args.command == "package":
         build_dir = os.path.join(libfwk_path(), "build", "dependencies")
-        build_options = BuildOptions.parse(args, deps_json_dir)
+        build_options = BuildOptions.initialize(args, deps_json_dir)
 
         prepare_dir(target_dir, args.clean)
         download_strings = []
