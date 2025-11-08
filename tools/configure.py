@@ -16,10 +16,12 @@ from typing import Optional
 # from potentially unsafe sources (like libfwk github) from those which can be built locally
 # or downloaded from conan center.
 
+# TODO: build package, etc should by default handle only buildable packages? Missing packages should
+# only generate a warning.
+# TODO: rename packages -> dependencies in appropriate places
 # TODO: verify that ninja is installed?
 # TODO: verify that dependencies are downloaded/built correctly before running configure?
 # TODO: iterator_debug_level in shaderc-combined
-# TODO: merge install_deps.py into configure.py ?
 # TODO: Fix shaderc-combined: it's too large... unity-builds for spirv-opt?
 # TODO: better printing for conan command
 # TODO: verify that libfwk is buildable with built dependencies? that would be costly?
@@ -1012,63 +1014,60 @@ def download_package(deps: DependenciesJson, package_name: str, target_dir: str,
 
 def parse_arguments() -> argparse.Namespace:
     parser = argparse.ArgumentParser(
-        prog="install_deps",
-        description="Installs dependencies needed for building libfwk or "
-        "libfwk-based projects on Windows.",
+        prog="configure.py",
+        description="Configures libfwk-based projects including dependencies management "
+        "(downloading, building and installation). ",
     )
-    parser.add_argument(
-        "--deps-file",
-        type=str,
-        help="Path to the file with a list of packages to install. "
-        "If not specified then dependencies.json in current directory will be used.",
-    )
-    parser.add_argument(
-        "--target-dir",
-        type=str,
-        help="Target directory where dependencies will be installed. "
-        "By default it is 'dependencies/' inside libfwk's directory.",
-    )
-    parser.add_argument(
-        "--clean",
-        action="store_true",
-        help="If specified then the target directory will be cleaned before "
-        "installing new libraries. When downloading all packages this is done by default.",
-    )
-    if os.name == "nt":
-        parser.add_argument(
-            "--find-vcvars", action="store_true", help="Find and print path to vcvars64.bat."
-        )
-
     sub_parsers = parser.add_subparsers(help="Available commands:", dest="command")
 
-    download_parser = sub_parsers.add_parser(
-        "download-deps", help="Download prebuilt packages from caches. [DEFAULT COMMAND]"
+    configure_parser = sub_parsers.add_parser(
+        "configure",
+        help="[DEFAULT] Configure libfwk-based project (or libfwk itself) by running CMake with "
+        "proper settings and in appropriate environment. Currently it's mainly useful on Windows to"
+        " properly setup ninja or Visual Studio-based builds.",
     )
+
+    download_parser = sub_parsers.add_parser(
+        "download-deps", help="Download prebuilt packages from caches."
+    )
+    build_parser = sub_parsers.add_parser(
+        "build-deps",
+        help="Build dependencies locally by using recipies or by downloading it from conan center.",
+    )
+    package_parser = sub_parsers.add_parser(
+        "package-deps",
+        help="Build dependency packages which can later be downloaded from " "package caches.",
+    )
+    list_parser = sub_parsers.add_parser(
+        "list-deps",
+        help="List dependencies which can be downloaded or built.",
+    )
+
+    for sub_parser in [download_parser, build_parser, package_parser, list_parser]:
+        sub_parser.add_argument(
+            "--deps-file",
+            type=str,
+            help="Path to the file with a list of packages to install. "
+            "If not specified then dependencies.json in current directory will be used.",
+        )
+        sub_parser.add_argument(
+            "--target-dir",
+            type=str,
+            help="Target directory where dependencies will be installed. "
+            "By default it is 'dependencies/' inside libfwk's directory.",
+        )
+        sub_parser.add_argument(
+            "--clean",
+            action="store_true",
+            help="If specified then the target directory will be cleaned before "
+            "installing new libraries. When downloading all packages this is done by default.",
+        )
+
     download_parser.add_argument(
         "--package-dir",
         type=str,
         help="Directory where downloaded packages will be stored. "
         "By default it is 'dependencies/' inside libfwk's directory.",
-    )
-
-    build_parser = sub_parsers.add_parser(
-        "build-deps",
-        help="Build packages locally by using recipies or by downloading it from conan center.",
-    )
-    package_parser = sub_parsers.add_parser(
-        "package-deps", help="Build packages which can later be downloaded from package caches."
-    )
-
-    configure_parser = sub_parsers.add_parser(
-        "configure",
-        help="Configure libfwk-based project (or libfwk itself) by running CMake with "
-        "proper settings and in appropriate environment. Currently it's mainly useful on Windows to"
-        " properly setup ninja or Visual Studio-based builds.",
-    )
-
-    sub_parsers.add_parser(
-        "list-deps",
-        help="List dependencies which can be downloaded or built.",
     )
 
     for sub_parser in [build_parser, package_parser]:
@@ -1093,6 +1092,9 @@ def parse_arguments() -> argparse.Namespace:
             help="CMake generator and compiler set to use.",
         )
         if os.name == "nt":
+            sub_parser.add_argument(
+                "--find-vcvars", action="store_true", help="Find and print path to vcvars64.bat."
+            )
             sub_parser.add_argument(
                 "--vs-path",
                 type=str,
@@ -1122,29 +1124,37 @@ def parse_arguments() -> argparse.Namespace:
     for sub_parser, help_text in [
         (
             download_parser,
-            "Selection of packages to download. If omitted all required dependencies will be downloaded.",
+            "Selection of packages to download. "
+            "If omitted all required dependencies will be downloaded.",
         ),
         (
             build_parser,
-            "Selection of packages to build. If omitted all buildable packages will be built.",
+            "Selection of dependencies to build. "
+            "If omitted all buildable dependencies will be built.",
         ),
         (
             package_parser,
-            "Selection of packages to build and package. "
-            "If omitted all buildable packages will be built and packaged.",
+            "Selection of dependencies to build and package. "
+            "If omitted all buildable dependencies will be built and packaged.",
         ),
     ]:
         sub_parser.add_argument(
-            "packages",
+            "dependencies",
             nargs="*",
             metavar="PACKAGE",
             help=help_text,
         )
 
-    args = parser.parse_args()
+    argv = sys.argv[1:]
+    commands = ["configure", "download-deps", "build-deps", "package-deps", "list-deps"]
+    command = len(argv) >= 1 and argv[0]
+    if command not in commands and command != "--help":
+        argv = ["configure"] + argv
+    args = parser.parse_args(argv)
+
     if not args.command:
         args.command = "download"
-        args.packages = []
+        args.dependencies = []
     return args
 
 
@@ -1174,38 +1184,38 @@ def dependencies_main(args: argparse.Namespace):
         deps_json = DependenciesJson.parse(json.load(file))
     platform = current_platform()
 
-    downloadable_packages = get_cached_package_names(deps_json, platform)
-    buildable_packages = get_buildable_package_names(deps_json, platform)
+    downloadable_deps = get_cached_package_names(deps_json, platform)
+    buildable_deps = get_buildable_package_names(deps_json, platform)
 
-    if args.command == "list":
-        print(f"Downloadable packages: {downloadable_packages}")
-        print(f"Buildable packages: {buildable_packages}")
+    if args.command == "list-deps":
+        print(f"Downloadable dependencies: {downloadable_deps}")
+        print(f"Buildable dependencies: {buildable_deps}")
         return
 
-    selected_deps = args.packages
+    selected_deps = args.dependencies
     if not selected_deps:
         selected_deps = deps_json.dependencies
 
-    available_packages = downloadable_packages if args.command == "download" else buildable_packages
-    unavailable_packages = [dep for dep in selected_deps if dep not in available_packages]
-    if unavailable_packages:
-        print_error(f"The following requested packages are not available: {unavailable_packages}")
+    available_deps = downloadable_deps if args.command == "download" else buildable_deps
+    unavailable_deps = [dep for dep in selected_deps if dep not in available_deps]
+    if unavailable_deps:
+        print_error(f"The following requested dependencies are not available: {unavailable_deps}")
         exit(1)
 
     default_target_dir = os.path.join(libfwk_path(), "dependencies")
     target_dir = os.path.abspath(args.target_dir or default_target_dir)
 
     # TODO: multithreading for downloading & unpacking?
-    if args.command == "download":
+    if args.command == "download-deps":
         print_title("Downloading pre-built packages", Color.DEFAULT, Style.BOLD)
-        if args.packages is None and args.clean is None:
+        if args.dependencies is None and args.clean is None:
             args.clean = True
 
         prepare_target_dir(target_dir, args.clean)
         for dep in selected_deps:
             download_package(deps_json, dep, target_dir, target_dir)
 
-    elif args.command == "build":
+    elif args.command == "build-deps":
         build_dir = os.path.join(libfwk_path(), "build", "dependencies")
         build_options = BuildOptions.initialize(args, deps_json_dir)
 
@@ -1214,7 +1224,7 @@ def dependencies_main(args: argparse.Namespace):
             package_build_dir = os.path.join(build_dir, dep)
             build_package(deps_json, dep, target_dir, package_build_dir, build_options)
 
-    elif args.command == "package":
+    elif args.command == "package-deps":
         build_dir = os.path.join(libfwk_path(), "build", "dependencies")
         build_options = BuildOptions.initialize(args, deps_json_dir)
 
@@ -1232,21 +1242,21 @@ def dependencies_main(args: argparse.Namespace):
             hash = compute_sha256_64(zip_path)
             download_strings.append(f"{dep}:{version}:{hash}")
 
-        print_color("\nBuilt packages (name:version:hash):", Color.DEFAULT, Style.BOLD)
+        print_color("\nBuilt dependencies (name:version:hash):", Color.DEFAULT, Style.BOLD)
         for download_string in download_strings:
             print(f"  {download_string}")
 
 
 def main():
     args = parse_arguments()
-    if args.find_vcvars and os.name == "nt":
+    if "find_vcvars" in args and args.find_vcvars and os.name == "nt":
         vs_path = args.vs_path or find_visual_studio_installation()
         vcvars64_path = find_vcvars64_bat(vs_path) if vs_path else None
         print(vcvars64_path if vcvars64_path else "vcvars64.bat not found.")
     elif args.command == "configure":
         configure_main(args)
     else:
-        dependencies_main()
+        dependencies_main(args)
 
 
 if __name__ == "__main__":
