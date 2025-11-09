@@ -1,0 +1,92 @@
+# Copyright (C) Krzysztof Jakubowski <nadult@fastmail.fm>
+# This file is part of libfwk. See license.txt for details.
+
+# TODO: run it on main branch when deps or configure.py changes
+
+name: Build dependencies
+
+on:
+  workflow_dispatch:
+  workflow_call:
+
+env:
+  PYTHONUNBUFFERED: 1
+
+jobs:
+  list-dependencies:
+    runs-on: ubuntu-22.04
+    outputs:
+      deps-windows: ${{ steps.list-dependencies.outputs.deps-windows }}
+      deps-linux: ${{ steps.list-dependencies.outputs.deps-linux }}
+      sha1-short: ${{ steps.list-dependencies.outputs.sha1-short }}
+    steps:
+    - uses: actions/checkout@v4
+
+    - name: Set up Python
+      uses: actions/setup-python@v5
+      with:
+        python-version: '3.12'
+        architecture: 'x64'
+
+    - name: List buildable packages
+      id: list-dependencies
+      run: |
+        deps_windows=$(python tools/configure.py list-deps --buildable-only --platform windows)
+        deps_linux=$(python tools/configure.py list-deps --buildable-only --platform linux)
+        echo deps-windows: $deps_windows
+        echo deps-linux: $deps_linux
+
+        echo "deps-windows<<EOF" >> $GITHUB_OUTPUT
+        echo "$deps_windows" >> $GITHUB_OUTPUT
+        echo "EOF" >> $GITHUB_OUTPUT
+
+        echo "deps-linux<<EOF" >> $GITHUB_OUTPUT
+        echo "$deps_linux" >> $GITHUB_OUTPUT
+        echo "EOF" >> $GITHUB_OUTPUT
+
+        echo sha1-short="$(git rev-parse --short HEAD)" >> $GITHUB_OUTPUT
+
+  build-packages-windows:
+    needs: list-dependencies
+    strategy:
+      matrix:
+        dependency: ${{ fromJson(needs.list-dependencies.outputs.deps-windows) }}
+      fail-fast: false
+    uses: ./.github/workflows/build-package.yml
+    with:
+      dependency: ${{ matrix.dependency }}
+      runner_os: windows-2025
+
+  build-packages-linux:
+    needs: list-dependencies
+    strategy:
+      matrix:
+        dependency: ${{ fromJson(needs.list-dependencies.outputs.deps-linux) }}
+      fail-fast: false
+    uses: ./.github/workflows/build-package.yml
+    with:
+      dependency: ${{ matrix.dependency }}
+      runner_os: ubuntu-22.04
+
+  merge-artifacts:
+    name: Merge artifacts
+    runs-on: ubuntu-22.04
+    needs: [list-dependencies, build-packages-windows, build-packages-linux]
+    steps:
+      - name: Merge windows artifacts
+        uses: actions/upload-artifact/merge@v4
+        with:
+          delete-merged: true
+          name: windows-2025-${{needs.list-dependencies.outputs.sha1-short}}
+          compression-level: 0
+          retention-days: 30
+          pattern: "windows-2025-*"
+
+      - name: Merge linux artifacts
+        uses: actions/upload-artifact/merge@v4
+        with:
+          delete-merged: true
+          name: ubuntu-22.04-${{needs.list-dependencies.outputs.sha1-short}}
+          compression-level: 0
+          retention-days: 30
+          pattern: "ubuntu-22.04-*"

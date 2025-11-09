@@ -3,19 +3,18 @@
 # Copyright (C) Krzysztof Jakubowski <nadult@fastmail.fm>
 # This file is part of libfwk. See license.txt for details.
 
-import enum
-import pathlib
-import argparse, hashlib, json, shutil, os, re, ssl, subprocess
+import argparse, enum, hashlib, importlib.util, json, os, pathlib, re, shutil, ssl, subprocess, sys, tempfile
 from dataclasses import dataclass, field
-import sys
-import tempfile
-from urllib.parse import urlparse
 from typing import Optional
+from urllib.parse import urlparse
 
 # TODO: better naming, especially differentiation between packages which can be downloaded
 # from potentially unsafe sources (like libfwk github) from those which can be built locally
 # or downloaded from conan center.
 
+# TODO: add mode: ninja-msvc for Windows
+# TODO: generator should be probably specified in dependencies.json
+# TODO: unify cmake classes from configure & build commands?
 # TODO: build package, etc should by default handle only buildable packages? Missing packages should
 # only generate a warning.
 # TODO: rename packages -> dependencies in appropriate places
@@ -208,6 +207,10 @@ def current_platform() -> str:
         return "linux"
     else:
         raise RuntimeError(f"Unsupported platform: {os.name}")
+
+
+def valid_platforms() -> list[str]:
+    return ["windows", "linux"]
 
 
 def find_visual_studio_installation() -> str:
@@ -768,12 +771,30 @@ def conan_parse_packages_json(query: str, json_text: str) -> list[ConanPackageIn
     return out
 
 
+_conan_command: Optional[list[str]] = None
+
+
+def conan_find_command():
+    global _conan_command
+    if shutil.which("conan") is not None:
+        _conan_command = ["conan"]
+    elif importlib.util.find_spec("conan") is not None:
+        _conan_command = [sys.executable, "-m", "conan"]
+    else:
+        print_error(
+            "Conan not found. Please install conan directly, add it to PATH or"
+            "install it via pip."
+        )
+        exit(1)
+
+
 def conan_check_version():
+    global _conan_command
     conan_version = None
     min_version = 2
 
     try:
-        result = subprocess.run(["conan", "--version"], stdout=subprocess.PIPE)
+        result = subprocess.run(_conan_command + ["--version"], stdout=subprocess.PIPE)
         tokens = result.stdout.decode("utf-8").split()
         if len(tokens) >= 3 and tokens[0] == "Conan" and tokens[1] == "version":
             conan_version = [int(x) for x in tokens[2].split(".")]
@@ -789,8 +810,17 @@ def conan_check_version():
         )
 
 
+def conan_command() -> list[str]:
+    global _conan_command
+    if _conan_command is None:
+        conan_find_command()
+        conan_check_version()
+    assert _conan_command is not None
+    return _conan_command
+
+
 def conan_list_packages(query: ConanPackageQuery) -> list[ConanPackageInfo]:
-    command = ["conan", "list", "-c", "-f", "json", f"{query.pattern()}:*"]
+    command = conan_command() + ["list", "-c", "-f", "json", f"{query.pattern()}:*"]
     if query.query:
         command += ["-p", query.query]
     # print("List command: " + str(command))
@@ -803,10 +833,10 @@ def conan_list_packages(query: ConanPackageQuery) -> list[ConanPackageInfo]:
 
 
 def conan_download_packages(query: ConanPackageQuery) -> list[ConanPackageInfo]:
-    command = ["conan", "download", "-r", "conancenter", query.pattern(), "-f", "json"]
+    command = conan_command() + ["download", "-r", "conancenter", query.pattern(), "-f", "json"]
     if query.query:
         command += ["-p", query.query]
-    print("Download command: " + str(command))
+    # print("Download command: " + str(command))
 
     result = subprocess.run(command, stderr=subprocess.PIPE, stdout=subprocess.PIPE)
     if result.returncode != 0:
@@ -826,7 +856,7 @@ def conan_get_best_package(packages: list[ConanPackageInfo]) -> ConanPackageInfo
 
 
 def conan_get_package_path(info: ConanPackageInfo):
-    command = ["conan", "cache", "path", info.pattern()]
+    command = conan_command() + ["cache", "path", info.pattern()]
     result = subprocess.run(command, stdout=subprocess.PIPE)
     if result.returncode != 0:
         print(f"Error while retrieving package path for: {info.pattern()}")
@@ -930,7 +960,7 @@ def build_cmake_package(
         print(f"Running command: {cmd}")
         subprocess.run(cmd, cwd=src_sub_dir, check=True, shell=True)
 
-    num_threads = os.cpu_count()
+    num_threads = os.cpu_count() * 2
     jobs_argument = [f"-j{num_threads}"] if num_threads > 1 else []
 
     for build in recipe.get_builds(current_platform()):
@@ -1050,6 +1080,8 @@ def parse_arguments() -> argparse.Namespace:
             help="Path to the file with a list of packages to install. "
             "If not specified then dependencies.json in current directory will be used.",
         )
+
+    for sub_parser in [download_parser, build_parser, package_parser]:
         sub_parser.add_argument(
             "--target-dir",
             type=str,
@@ -1062,6 +1094,10 @@ def parse_arguments() -> argparse.Namespace:
             help="If specified then the target directory will be cleaned before "
             "installing new libraries. When downloading all packages this is done by default.",
         )
+
+    list_parser.add_argument("--downloadable-only", action="store_true")
+    list_parser.add_argument("--buildable-only", action="store_true")
+    list_parser.add_argument("--platform", type=str, choices=valid_platforms())
 
     download_parser.add_argument(
         "--package-dir",
@@ -1177,25 +1213,36 @@ def configure_main(args: argparse.Namespace):
         exit(1)
 
 
+def list_deps(args: argparse.Namespace, deps_json: DependenciesJson):
+    platform = args.platform or current_platform()
+
+    downloadable_deps = get_cached_package_names(deps_json, platform)
+    buildable_deps = get_buildable_package_names(deps_json, platform)
+
+    if args.downloadable_only:
+        deps = downloadable_deps
+    elif args.buildable_only:
+        deps = buildable_deps
+    else:
+        deps = {"downloadable_deps": downloadable_deps, "buildable_deps": buildable_deps}
+
+    print(json.dumps(deps, indent=2))
+
+
 def dependencies_main(args: argparse.Namespace):
     deps_json_path = args.deps_file or os.path.join(os.getcwd(), "dependencies.json")
     deps_json_dir = os.path.dirname(os.path.abspath(deps_json_path))
     with open(deps_json_path, "r") as file:
         deps_json = DependenciesJson.parse(json.load(file))
-    platform = current_platform()
-
-    downloadable_deps = get_cached_package_names(deps_json, platform)
-    buildable_deps = get_buildable_package_names(deps_json, platform)
 
     if args.command == "list-deps":
-        print(f"Downloadable dependencies: {downloadable_deps}")
-        print(f"Buildable dependencies: {buildable_deps}")
+        list_deps(args, deps_json)
         return
 
-    selected_deps = args.dependencies
-    if not selected_deps:
-        selected_deps = deps_json.dependencies
-
+    platform = current_platform()
+    downloadable_deps = get_cached_package_names(deps_json, platform)
+    buildable_deps = get_buildable_package_names(deps_json, platform)
+    selected_deps = args.dependencies or deps_json.dependencies
     available_deps = downloadable_deps if args.command == "download" else buildable_deps
     unavailable_deps = [dep for dep in selected_deps if dep not in available_deps]
     if unavailable_deps:
