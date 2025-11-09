@@ -1,13 +1,23 @@
 # Copyright (C) Krzysztof Jakubowski <nadult@fastmail.fm>
 # This file is part of libfwk. See license.txt for details.
 
-# TODO: run it on main branch when deps or configure.py changes
-
 name: Build dependencies
 
 on:
   workflow_dispatch:
   workflow_call:
+  push:
+    branches:
+      - main
+    paths:
+      - 'tools/configure.py'
+      - 'dependencies.json'
+      - '.github/workflows/build-package*.yml'
+  pull_request:
+    paths:
+      - 'tools/configure.py'
+      - 'dependencies.json'
+      - '.github/workflows/build-package*.yml'
 
 env:
   PYTHONUNBUFFERED: 1
