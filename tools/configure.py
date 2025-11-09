@@ -1001,6 +1001,8 @@ def get_cached_package_names(deps: DependenciesJson, platform: str) -> list[str]
 # Returns a tuple (version, full_url, hash)
 def find_package_in_caches(deps: DependenciesJson, package_name: str) -> Optional[tuple[str, str]]:
     for cache in deps.package_caches:
+        if cache.platform != current_platform():
+            continue
         for pkg in cache.packages:
             name, version, hash = pkg.split(":")
             if name == package_name:

@@ -54,13 +54,7 @@ jobs:
 
       - name: Install system dependencies
         run: |
-          wget -O - https://apt.llvm.org/llvm-snapshot.gpg.key | sudo apt-key add -
-          sudo apt update
           sudo apt-get install libvorbis-dev libogg-dev libopenal-dev libdwarf-dev libelf-dev
-          wget -qO - https://packages.lunarg.com/lunarg-signing-key-pub.asc | sudo tee /etc/apt/trusted.gpg.d/lunarg.asc
-          sudo wget -qO /etc/apt/sources.list.d/lunarg-vulkan-jammy.list http://packages.lunarg.com/vulkan/lunarg-vulkan-jammy.list
-          sudo apt update
-          sudo apt install libvulkan-dev vulkan-headers
 
       - name: Cache dependencies
         id: cache-deps
@@ -69,12 +63,12 @@ jobs:
             cache-name: cache-deps
         with:
             path: dependencies
-            key: ${{ runner.os }}-build-${{ env.cache-name }}-${{ hashFiles('tools/configure.py', 'dependencies.json') }}
+            key: ${{ runner.os }}-${{ env.cache-name }}-${{ hashFiles('tools/configure.py', 'dependencies.json') }}
 
       - if: ${{ steps.cache-deps.outputs.cache-hit != 'true' }}
-        name: Build dependencies
+        name: Download dependencies
         run: |
-          python tools/configure.py build-deps sdl shaderc-combined freetype
+          python tools/configure.py download-deps sdl shaderc-combined freetype vulkan-headers
 
       - name: Configure libfwk
         run: |
