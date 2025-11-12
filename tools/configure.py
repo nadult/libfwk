@@ -1204,7 +1204,7 @@ def configure_main(args: argparse.Namespace):
         build_dir=build_dir,
         build_type=BuildType(args.build_type),
         generator=Generator(args.generator),
-        vs_path=args.vs_path,
+        vs_path=hasattr(args, "vs_path") and args.vs_path,
         cmake_defines={k: v for k, v in (define.split("=", 1) for define in args.cmake_defines)},
     )
 
