@@ -52,23 +52,9 @@ jobs:
         with:
           submodules: 'true'
 
-      - name: Install system dependencies
+      - name: Download dependencies
         run: |
-          sudo apt-get install libvorbis-dev libogg-dev libopenal-dev libdwarf-dev libelf-dev
-
-      - name: Cache dependencies
-        id: cache-deps
-        uses: actions/cache@v3
-        env:
-            cache-name: cache-deps
-        with:
-            path: dependencies
-            key: ${{ runner.os }}-${{ env.cache-name }}-${{ hashFiles('tools/configure.py', 'dependencies.json') }}
-
-      - if: ${{ steps.cache-deps.outputs.cache-hit != 'true' }}
-        name: Download dependencies
-        run: |
-          python tools/configure.py download-deps sdl shaderc-combined freetype vulkan-headers
+          python tools/configure.py download-deps
 
       - name: Configure libfwk
         run: |

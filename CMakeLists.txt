@@ -244,12 +244,10 @@ target_link_directories(libfwk
 if(WIN32)
 	target_link_libraries(libfwk
 		SDL3 dbghelp winmm version setupapi dwrite Imm32
-		freetype zlib libpng16_static
+		freetype zlib
 		shaderc-combined-$<IF:$<CONFIG:Release>,md,mdd>)
 else()
-	find_package(ZLIB REQUIRED)
-	find_package(PNG REQUIRED)
-	target_link_libraries(libfwk SDL3 shaderc-combined freetype PNG::PNG ZLIB::ZLIB)
+	target_link_libraries(libfwk SDL3 shaderc-combined freetype z)
 	set_target_properties(libfwk PROPERTIES  OUTPUT_NAME "fwk")
 endif()
 
