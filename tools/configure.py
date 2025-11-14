@@ -196,7 +196,7 @@ def prepare_target_dir(dir: str, clean: bool):
     if clean:
         for subdir in find_subdirs(dir):
             subdir_path = os.path.join(dir, subdir)
-            shutil.rmtree(subdir)
+            shutil.rmtree(subdir_path)
     os.makedirs(dir, exist_ok=True)
 
 
