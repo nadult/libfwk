@@ -41,12 +41,16 @@ jobs:
 
       - name: Run tests
         run: |
-          build\Debug\tests\stuff.exe
-          build\Debug\tests\math.exe
+          cd build\Debug\tests
+          .\stuff
+          .\math
+          .\variant_perf
+          .\vector_perf
+          .\hash_map_perf
 
 
   test-linux:
-    runs-on: ubuntu-22.04
+    runs-on: ubuntu-24.04
     steps:
       - uses: actions/checkout@v4
         with:
@@ -58,9 +62,8 @@ jobs:
 
       - name: Configure libfwk
         run: |
-          export CXX=clang++
-          export CC=clang
-          cmake -S . -B build -DCMAKE_BUILD_TYPE=Release
+          export CXX=clang++-18
+          python tools/configure.py -G ninja -T Debug -DFWK_UNITY_BUILD=ON
 
       - name: Build libfwk, tests & tools
         run: |
@@ -68,7 +71,7 @@ jobs:
 
       - name: Run tests
         run: |
-          cd build/Release/tests
+          cd build/Debug/tests
           ./stuff
           ./math
           ./variant_perf
