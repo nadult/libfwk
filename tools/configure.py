@@ -476,7 +476,7 @@ class ConanRecipes:
 
 
 @dataclass
-class CMakeBuild:
+class CMakeRecipeBuild:
     full_name: str = ""
     platform: Optional[str] = None
     build_type: str = ""
@@ -485,7 +485,7 @@ class CMakeBuild:
     install_files: list[str] = field(default_factory=list)
 
     @staticmethod
-    def parse(json: dict, full_name: str) -> "CMakeBuild":
+    def parse(json: dict, full_name: str) -> "CMakeRecipeBuild":
         full_name = full_name or ":release:"
         _validate_pattern("build_name", "cmake-build name", [full_name])
         platform, build_type, build_suffix = full_name.split(":")
@@ -496,11 +496,11 @@ class CMakeBuild:
         _validate_dict_type("cmake-build.cmake-options", cmake_options, str, str)
         install_files = json.get("install-files", [])
         _validate_list_type("cmake-build.install-files", install_files, str)
-        return CMakeBuild(
+        return CMakeRecipeBuild(
             full_name, platform, build_type, build_suffix, cmake_options, install_files
         )
 
-    def inherit_cmake_options(self, parent: "CMakeBuild"):
+    def inherit_cmake_options(self, parent: "CMakeRecipeBuild"):
         for key, value in parent.cmake_options.items():
             if key not in self.cmake_options:
                 self.cmake_options[key] = value
@@ -515,8 +515,8 @@ class CMakeRecipe:
     source_sha1: str
     source_patches: list[str] = field(default_factory=list)
     after_checkout_commands: list[str] = field(default_factory=list)
-    default_build: CMakeBuild = field(default_factory=CMakeBuild)
-    builds: list[CMakeBuild] = field(default_factory=list)
+    default_build: CMakeRecipeBuild = field(default_factory=CMakeRecipeBuild)
+    builds: list[CMakeRecipeBuild] = field(default_factory=list)
 
     @staticmethod
     def parse(json: dict) -> "CMakeRecipe":
@@ -536,12 +536,12 @@ class CMakeRecipe:
         after_checkout_commands = json.get("after-checkout-commands", [])
         _validate_list_type("cmake-recipe.after-checkout-commands", after_checkout_commands, str)
 
-        default_build = CMakeBuild.parse(json, "")
+        default_build = CMakeRecipeBuild.parse(json, "")
         json_builds = json.get("builds", {})
         _validate_dict_type("cmake-recipe.builds", json_builds, str, object)
         builds = []
         for build_name, json_build in json_builds.items():
-            build = CMakeBuild.parse(json_build, build_name)
+            build = CMakeRecipeBuild.parse(json_build, build_name)
             if not build.install_files:
                 raise ValueError(f"Build '{build_name}' has no install files")
             build.inherit_cmake_options(default_build)
@@ -564,7 +564,7 @@ class CMakeRecipe:
             builds=builds,
         )
 
-    def get_builds(self, platform: str) -> list[CMakeBuild]:
+    def get_builds(self, platform: str) -> list[CMakeRecipeBuild]:
         if not self.builds:
             return [self.default_build]
         builds = []
@@ -909,7 +909,7 @@ def github_update_source(
 
 
 def configure_cmake_package(
-    cmake_build: CMakeBuild,
+    cmake_build: CMakeRecipeBuild,
     options: BuildOptions,
     source_dir: str,
     build_dir: str,
