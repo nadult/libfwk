@@ -13,11 +13,8 @@ on:
       - 'tools/configure.py'
       - 'dependencies.json'
       - '.github/workflows/build-package*.yml'
-  pull_request:
-    paths:
-      - 'tools/configure.py'
-      - 'dependencies.json'
-      - '.github/workflows/build-package*.yml'
+  issue_comment:
+    types: [created]
 
 env:
   PYTHONUNBUFFERED: 1
@@ -31,6 +28,12 @@ jobs:
       sha1-short: ${{ steps.list-dependencies.outputs.sha1-short }}
     steps:
     - uses: actions/checkout@v4
+
+    - name: Debug context
+      run: |
+        echo "Event name: ${{ github.event_name }}"
+        echo "Has PR: ${{ !!github.event.issue.pull_request }}"
+        echo "Comment body: ${{ github.event.comment.body }}"
 
     - name: Set up Python
       uses: actions/setup-python@v5
