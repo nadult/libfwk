@@ -47,7 +47,7 @@ vector<VertexIdPair> delaunay(const Voronoi &voronoi) {
 
 vector<VertexIdPair> delaunay(SparseSpan<int2> points) { return Voronoi::delaunay(points); }
 
-template <c_vec<2> T> Ex<vector<VertexIdPair>> delaunay(CSpan<T> points) {
+template <c_float_vec<2> T> Ex<vector<VertexIdPair>> delaunay(CSpan<T> points) {
 	auto scale = delaunayIntegralScale(points);
 	auto ipoints = EX_PASS(toIntegral(points, scale));
 	return Voronoi::delaunay(ipoints);
@@ -322,7 +322,7 @@ vector<VertexIdPair> constrainedDelaunay(const GeomGraph<int2> &igraph,
 	return out;
 }
 
-template <c_vec<2> T>
+template <c_float_vec<2> T>
 Ex<vector<VertexIdPair>> constrainedDelaunay(const GeomGraph<T> &graph,
 											 CSpan<VertexIdPair> delaunay) {
 	// Because of the conversion to/from int's, it's really approximate Delaunay
