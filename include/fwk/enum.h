@@ -15,6 +15,13 @@ namespace detail {
 	unsigned long long parseFlags(TextParser &, const char *const *strings, int count) EXCEPT;
 	void formatFlags(unsigned long long, TextFormatter &, const char *const *strings, int count);
 
+	template <int N> struct StringLiteral {
+		static constexpr int size = N;
+		char value[N];
+		constexpr StringLiteral(const char (&str)[N]) { std::copy_n(str, N, value); }
+		constexpr StringLiteral() : value{} {}
+	};
+
 	template <int N> struct EnumBuffer {
 		constexpr EnumBuffer(const char *ptr) : data{} {
 			for(int n = 0; n < N; n++) {
@@ -45,20 +52,11 @@ namespace detail {
 		const char *data[K];
 	};
 
-	template <const char *init_str, int TK> struct EnumStrings {
-		static constexpr int len(const char *ptr) {
-			int len = 0;
-			while(ptr[len])
-				len++;
-			return len;
-		}
-
-		static constexpr int N = len(init_str);
+	template <StringLiteral init_str, int TK> struct EnumStrings {
+		static constexpr int N = init_str.size;
 		static constexpr int K = TK;
-
 		static_assert(K <= 254, "Maximum number of enum elements is 254");
-
-		static constexpr EnumBuffer<N> buffer = {init_str};
+		static constexpr EnumBuffer<N> buffer = {init_str.value};
 		static constexpr EnumOffsets<N, K> offsets = {buffer.data};
 	};
 }
@@ -73,16 +71,14 @@ template <class Enum, class T> class EnumMap;
 	enum class id : unsigned char { __VA_ARGS__ };                                                 \
 	inline auto enumStrings(id) {                                                                  \
 		enum temp { __VA_ARGS__, _enum_count };                                                    \
-		static constexpr const char str[] = #__VA_ARGS__;                                          \
-		return fwk::detail::EnumStrings<str, _enum_count>();                                       \
+		return fwk::detail::EnumStrings<#__VA_ARGS__, _enum_count>();                              \
 	}
 
 #define DEFINE_ENUM_MEMBER(id, ...)                                                                \
 	enum class id : unsigned char { __VA_ARGS__ };                                                 \
 	inline friend auto enumStrings(id) {                                                           \
 		enum temp { __VA_ARGS__, _enum_count };                                                    \
-		static constexpr const char str[] = #__VA_ARGS__;                                          \
-		return fwk::detail::EnumStrings<str, _enum_count>();                                       \
+		return fwk::detail::EnumStrings<#__VA_ARGS__, _enum_count>();                              \
 	}
 
 #define DECLARE_ENUM(id)                                                                           \
