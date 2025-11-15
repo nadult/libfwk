@@ -12,8 +12,9 @@ from urllib.parse import urlparse
 # from potentially unsafe sources (like libfwk github) from those which can be built locally
 # or downloaded from conan center.
 
-# TODO: add mode: ninja-msvc for Windows
-# TODO: generator should be probably specified in dependencies.json
+# TODO: make building packages on github optional (with PR comment trigger)
+# TODO: add build command as well?
+# TODO: dependencies.json for libfwk-based project; should we load both dep files?
 # TODO: unify cmake classes from configure & build commands?
 # TODO: build package, etc should by default handle only buildable packages? Missing packages should
 # only generate a warning.
@@ -196,7 +197,7 @@ def prepare_target_dir(dir: str, clean: bool):
     if clean:
         for subdir in find_subdirs(dir):
             subdir_path = os.path.join(dir, subdir)
-            shutil.rmtree(subdir)
+            shutil.rmtree(subdir_path)
     os.makedirs(dir, exist_ok=True)
 
 
@@ -272,6 +273,14 @@ def visual_studio_year_version(path: str, env: dict) -> Optional[tuple[int, int]
     return None
 
 
+class Generator(enum.Enum):
+    NINJA_CLANG_CL = "ninja-clang-cl"
+    NINJA_MSVC = "ninja-msvc"
+    VS_CLANG_CL = "vs-clang-cl"
+    NINJA = "ninja"
+    DEFAULT = "default"
+
+
 @dataclass
 class BuildPlatformInfo:
     vs_year: Optional[int] = None
@@ -291,39 +300,65 @@ def windows_build_platform_info(vs_path: Optional[str] = None) -> BuildPlatformI
     return BuildPlatformInfo(vs_year=vs_year_version[0], vs_major=vs_year_version[1], vs_env=vs_env)
 
 
-def build_platform_info(args: argparse.Namespace) -> BuildPlatformInfo:
+def build_platform_info(
+    args: argparse.Namespace, generator: Generator
+) -> Optional[BuildPlatformInfo]:
     if os.name == "nt":
+        if generator == Generator.DEFAULT:
+            # Platform info not required in this case
+            return None
         return windows_build_platform_info(args.vs_path)
     return BuildPlatformInfo()
 
 
-class Generator(enum.Enum):
-    NINJA_CLANG_CL = "ninja-clang-cl"
-    VS_CLANG_CL = "vs-clang-cl"
-    DEFAULT = "default"
+def build_environment(
+    build_platform_info: Optional[BuildPlatformInfo], generator: Generator
+) -> Optional[dict]:
+    if os.name == "nt" and build_platform_info and build_platform_info.vs_env:
+        if generator in [
+            Generator.NINJA_CLANG_CL,
+            Generator.VS_CLANG_CL,
+            Generator.NINJA_MSVC,
+        ]:
+            return build_platform_info.vs_env
+    return None
 
 
 def valid_generators() -> list[str]:
     generators = [Generator.DEFAULT.value]
     if os.name == "nt":
-        generators += [Generator.NINJA_CLANG_CL.value, Generator.VS_CLANG_CL.value]
+        generators += [
+            Generator.NINJA_CLANG_CL.value,
+            Generator.NINJA_MSVC.value,
+            Generator.VS_CLANG_CL.value,
+        ]
+    else:
+        generators += [Generator.NINJA.value]
     return generators
 
 
 def generator_options(
-    generator: Generator, platform_info: Optional[BuildPlatformInfo] = None
+    generator: Generator, build_platform_info: Optional[BuildPlatformInfo] = None
 ) -> dict:
     options = []
     if generator == Generator.NINJA_CLANG_CL:
         options += ["-G", "Ninja"]
         options += ["-DCMAKE_C_COMPILER=clang-cl"]
         options += ["-DCMAKE_CXX_COMPILER=clang-cl"]
+    elif generator == Generator.NINJA_MSVC:
+        options += ["-G", "Ninja"]
+        options += ["-DCMAKE_C_COMPILER=cl"]
+        options += ["-DCMAKE_CXX_COMPILER=cl"]
     elif generator == Generator.VS_CLANG_CL:
-        assert platform_info is not None
-        generator_name = f"Visual Studio {platform_info.vs_major} {platform_info.vs_year}"
+        assert build_platform_info is not None
+        generator_name = (
+            f"Visual Studio {build_platform_info.vs_major} {build_platform_info.vs_year}"
+        )
         options += ["-G", generator_name]
         options += ["-DCMAKE_C_COMPILER=clang-cl"]
         options += ["-DCMAKE_CXX_COMPILER=clang-cl"]
+    elif generator == Generator.NINJA:
+        options += ["-G", "Ninja"]
     else:
         assert generator == Generator.DEFAULT
     return options
@@ -476,7 +511,7 @@ class ConanRecipes:
 
 
 @dataclass
-class CMakeBuild:
+class CMakeRecipeBuild:
     full_name: str = ""
     platform: Optional[str] = None
     build_type: str = ""
@@ -485,7 +520,7 @@ class CMakeBuild:
     install_files: list[str] = field(default_factory=list)
 
     @staticmethod
-    def parse(json: dict, full_name: str) -> "CMakeBuild":
+    def parse(json: dict, full_name: str) -> "CMakeRecipeBuild":
         full_name = full_name or ":release:"
         _validate_pattern("build_name", "cmake-build name", [full_name])
         platform, build_type, build_suffix = full_name.split(":")
@@ -496,11 +531,11 @@ class CMakeBuild:
         _validate_dict_type("cmake-build.cmake-options", cmake_options, str, str)
         install_files = json.get("install-files", [])
         _validate_list_type("cmake-build.install-files", install_files, str)
-        return CMakeBuild(
+        return CMakeRecipeBuild(
             full_name, platform, build_type, build_suffix, cmake_options, install_files
         )
 
-    def inherit_cmake_options(self, parent: "CMakeBuild"):
+    def inherit_cmake_options(self, parent: "CMakeRecipeBuild"):
         for key, value in parent.cmake_options.items():
             if key not in self.cmake_options:
                 self.cmake_options[key] = value
@@ -515,8 +550,8 @@ class CMakeRecipe:
     source_sha1: str
     source_patches: list[str] = field(default_factory=list)
     after_checkout_commands: list[str] = field(default_factory=list)
-    default_build: CMakeBuild = field(default_factory=CMakeBuild)
-    builds: list[CMakeBuild] = field(default_factory=list)
+    default_build: CMakeRecipeBuild = field(default_factory=CMakeRecipeBuild)
+    builds: list[CMakeRecipeBuild] = field(default_factory=list)
 
     @staticmethod
     def parse(json: dict) -> "CMakeRecipe":
@@ -536,12 +571,12 @@ class CMakeRecipe:
         after_checkout_commands = json.get("after-checkout-commands", [])
         _validate_list_type("cmake-recipe.after-checkout-commands", after_checkout_commands, str)
 
-        default_build = CMakeBuild.parse(json, "")
+        default_build = CMakeRecipeBuild.parse(json, "")
         json_builds = json.get("builds", {})
         _validate_dict_type("cmake-recipe.builds", json_builds, str, object)
         builds = []
         for build_name, json_build in json_builds.items():
-            build = CMakeBuild.parse(json_build, build_name)
+            build = CMakeRecipeBuild.parse(json_build, build_name)
             if not build.install_files:
                 raise ValueError(f"Build '{build_name}' has no install files")
             build.inherit_cmake_options(default_build)
@@ -564,7 +599,7 @@ class CMakeRecipe:
             builds=builds,
         )
 
-    def get_builds(self, platform: str) -> list[CMakeBuild]:
+    def get_builds(self, platform: str) -> list[CMakeRecipeBuild]:
         if not self.builds:
             return [self.default_build]
         builds = []
@@ -621,20 +656,20 @@ class CMakeConfig:
     build_dir: str
     build_type: Optional[BuildType] = BuildType.DEBUG
     generator: Optional[Generator] = Generator.DEFAULT
-    vs_path: Optional[str] = None
     cmake_defines: dict = field(default_factory=dict)
+    build_platform_info: Optional[BuildPlatformInfo] = None
 
 
-def configure_windows(cmake_config: CMakeConfig):
-    platform_info = windows_build_platform_info(cmake_config.vs_path)
+def configure_project(cmake_config: CMakeConfig):
     cmd = ["cmake", "--fresh"]
-    cmd += generator_options(cmake_config.generator, platform_info)
+    cmd += generator_options(cmake_config.generator, cmake_config.build_platform_info)
     cmd += ["-S", cmake_config.source_dir, "-B", cmake_config.build_dir]
     cmd += [f"-DCMAKE_BUILD_TYPE={cmake_config.build_type.value}"]
     for key, value in cmake_config.cmake_defines.items():
         cmd.append(f"-D{key}={value}")
     print("Running CMake with command:", " ".join(cmd))
-    subprocess.run(cmd, env=platform_info.vs_env, check=True)
+    env = build_environment(cmake_config.build_platform_info, cmake_config.generator)
+    subprocess.run(cmd, env=env, check=True)
 
 
 # =================================================================================================
@@ -658,10 +693,11 @@ class BuildOptions:
         self.skip_download_source = args.skip_download_source
         self.deps_json_dir = deps_json_dir
         self.generator = Generator(args.generator) if args.generator else Generator.DEFAULT
-        build_platform_info_required = not (os.name == "nt" and self.generator == Generator.DEFAULT)
-        if build_platform_info_required:
-            self.build_platform_info = build_platform_info(args)
+        self.build_platform_info = build_platform_info(args, self.generator)
         return self
+
+    def build_environment(self) -> Optional[dict]:
+        return build_environment(self.build_platform_info, self.generator)
 
 
 def get_buildable_package_names(deps: DependenciesJson, platform: str) -> list[str]:
@@ -909,7 +945,7 @@ def github_update_source(
 
 
 def configure_cmake_package(
-    cmake_build: CMakeBuild,
+    cmake_build: CMakeRecipeBuild,
     options: BuildOptions,
     source_dir: str,
     build_dir: str,
@@ -922,12 +958,7 @@ def configure_cmake_package(
     cmake_cmd += generator_options(options.generator, options.build_platform_info)
 
     print("CMake command: " + str(cmake_cmd))
-    env = (
-        options.build_platform_info.vs_env
-        if os.name == "nt" and options.build_platform_info
-        else None
-    )
-    subprocess.run(cmake_cmd, cwd=build_dir, env=env, check=True)
+    subprocess.run(cmake_cmd, cwd=build_dir, env=options.build_environment(), check=True)
 
 
 def build_cmake_package(
@@ -978,7 +1009,7 @@ def build_cmake_package(
         build_cmd = ["cmake", "--build", ".", "--config", build.build_type, "--target", "install"]
         build_cmd += jobs_argument
         print("Build command: " + str(build_cmd))
-        subprocess.run(build_cmd, cwd=build_sub_dir, check=True)
+        subprocess.run(build_cmd, cwd=build_sub_dir, env=options.build_environment(), check=True)
 
         print_step(f"Installing files for build: {build.full_name}")
         install_files(target_dir, install_sub_dir, build.install_files or [".*"])
@@ -1087,7 +1118,7 @@ def parse_arguments() -> argparse.Namespace:
         sub_parser.add_argument(
             "--target-dir",
             type=str,
-            help="Target directory where dependencies will be installed. "
+            help="Target directory where dependencies will be unpacked/installed. "
             "By default it is 'dependencies/' inside libfwk's directory.",
         )
         sub_parser.add_argument(
@@ -1199,20 +1230,16 @@ def parse_arguments() -> argparse.Namespace:
 def configure_main(args: argparse.Namespace):
     source_dir = os.path.abspath(os.getcwd())
     build_dir = os.path.abspath(args.build_dir) or os.path.join(source_dir, "build")
+    generator = Generator(args.generator)
     cmake_config = CMakeConfig(
         source_dir=source_dir,
         build_dir=build_dir,
         build_type=BuildType(args.build_type),
-        generator=Generator(args.generator),
-        vs_path=hasattr(args, "vs_path") and args.vs_path,
+        generator=generator,
         cmake_defines={k: v for k, v in (define.split("=", 1) for define in args.cmake_defines)},
+        build_platform_info=build_platform_info(args, generator),
     )
-
-    if os.name == "nt":
-        configure_windows(cmake_config)
-    else:
-        print_error("Currently only Windows platform is supported for configure command.")
-        exit(1)
+    configure_project(cmake_config)
 
 
 def list_deps(args: argparse.Namespace, deps_json: DependenciesJson):
