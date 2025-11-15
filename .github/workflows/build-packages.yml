@@ -13,11 +13,6 @@ on:
       - 'tools/configure.py'
       - 'dependencies.json'
       - '.github/workflows/build-package*.yml'
-  pull_request:
-    paths:
-      - 'tools/configure.py'
-      - 'dependencies.json'
-      - '.github/workflows/build-package*.yml'
 
 env:
   PYTHONUNBUFFERED: 1
@@ -89,7 +84,7 @@ jobs:
           delete-merged: true
           name: windows-2025-${{needs.list-dependencies.outputs.sha1-short}}
           compression-level: 0
-          retention-days: ${{ github.event_name == 'pull_request' && 3 || 30 }}
+          retention-days: ${{ 30 }}
           pattern: "windows-2025-*"
 
       - name: Merge linux artifacts
@@ -98,5 +93,5 @@ jobs:
           delete-merged: true
           name: ubuntu-22.04-${{needs.list-dependencies.outputs.sha1-short}}
           compression-level: 0
-          retention-days: ${{ github.event_name == 'pull_request' && 3 || 30 }}
+          retention-days: ${{ 30 }}
           pattern: "ubuntu-22.04-*"
