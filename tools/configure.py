@@ -12,7 +12,6 @@ from urllib.parse import urlparse
 # from potentially unsafe sources (like libfwk github) from those which can be built locally
 # or downloaded from conan center.
 
-# TODO: make building packages on github optional (with PR comment trigger)
 # TODO: add build command as well?
 # TODO: dependencies.json for libfwk-based project; should we load both dep files?
 # TODO: unify cmake classes from configure & build commands?
