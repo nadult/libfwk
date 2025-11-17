@@ -14,7 +14,6 @@ from urllib.parse import urlparse
 
 # TODO: make building packages on github optional (with PR comment trigger)
 # TODO: add build command as well?
-# TODO: dependencies.json for libfwk-based project; should we load both dep files?
 # TODO: unify cmake classes from configure & build commands?
 # TODO: build package, etc should by default handle only buildable packages? Missing packages should
 # only generate a warning.
@@ -165,10 +164,6 @@ def zip_directory(target_dir: str, zip_path_base: Optional[str] = None) -> Optio
         os.remove(zip_path)
     shutil.make_archive(zip_path_base, "zip", root_dir=target_dir, base_dir=".")
     return zip_path
-
-
-def libfwk_path():
-    return os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 
 
 def check_commands_available(commands: list[str]) -> bool:
@@ -554,7 +549,7 @@ class CMakeRecipe:
     builds: list[CMakeRecipeBuild] = field(default_factory=list)
 
     @staticmethod
-    def parse(json: dict) -> "CMakeRecipe":
+    def parse(json: dict, patch_dir: str) -> "CMakeRecipe":
         if not isinstance(json, dict):
             raise TypeError("cmake-recipe must be a dictionary")
         name_version = json.get("package")
@@ -568,6 +563,7 @@ class CMakeRecipe:
         _validate_pattern("sha1", "cmake-recipe.source-sha1", [source_sha1])
         source_patches = json.get("source-patches", [])
         _validate_list_type("cmake-recipe.source-patches", source_patches, str)
+        source_patches = [os.path.join(patch_dir, p) for p in source_patches]
         after_checkout_commands = json.get("after-checkout-commands", [])
         _validate_list_type("cmake-recipe.after-checkout-commands", after_checkout_commands, str)
 
@@ -625,24 +621,37 @@ class DependenciesJson:
     cmake_recipes: list[CMakeRecipe] = field(default_factory=list)
 
     @staticmethod
-    def parse(json: dict) -> "DependenciesJson":
-        dependencies = json.get("dependencies", [])
-        _validate_list_type("dependencies", dependencies, str)
-        _validate_pattern("package_name", "dependencies", dependencies)
+    def parse(file_path: str, depth=0) -> "DependenciesJson":
+        with open(file_path, "r") as file:
+            json_root = json.load(file)
+        assert depth < 8, "Too many levels of dependencies.json includes"
+        deps = json_root.get("dependencies", [])
+        _validate_list_type("dependencies", deps, str)
+        _validate_pattern("package_name", "dependencies", deps)
+        dir_path = os.path.dirname(file_path)
 
-        package_caches = [
-            PackageCache.parse(json_cache) for json_cache in json.get("package-caches", [])
-        ]
+        json_package_caches = json_root.get("package-caches", [])
+        json_conan_recipes = json_root.get("conan-recipes", {})
+        json_cmake_recipes = json_root.get("cmake-recipes", [])
 
-        conan_recipes = [
-            ConanRecipes.parse(json_recipes) for json_recipes in json.get("conan-recipes", {})
-        ]
+        package_caches = [PackageCache.parse(js) for js in json_package_caches]
+        conan_recipes = [ConanRecipes.parse(js) for js in json_conan_recipes]
+        cmake_recipes = [CMakeRecipe.parse(js, dir_path) for js in json_cmake_recipes]
 
-        cmake_recipes = [
-            CMakeRecipe.parse(json_recipe) for json_recipe in json.get("cmake-recipes", [])
-        ]
+        json_includes = json_root.get("includes", [])
+        _validate_list_type("includes", json_includes, str)
+        for json_include in json_includes:
+            if os.path.isabs(json_include):
+                raise ValueError("included dependency file path must be relative")
+            include_path = os.path.abspath(os.path.join(dir_path, json_include))
+            included_deps = DependenciesJson.parse(include_path, depth + 1)
+            deps.extend(included_deps.dependencies)
+            package_caches.extend(included_deps.package_caches)
+            conan_recipes.extend(included_deps.conan_recipes)
+            cmake_recipes.extend(included_deps.cmake_recipes)
 
-        return DependenciesJson(dependencies, package_caches, conan_recipes, cmake_recipes)
+        deps = sorted(set(deps))
+        return DependenciesJson(deps, package_caches, conan_recipes, cmake_recipes)
 
 
 # =================================================================================================
@@ -682,16 +691,14 @@ class BuildOptions:
     platform: str = current_platform()
     clean_build: bool = False
     skip_download_source: bool = False
-    deps_json_dir: Optional[str] = None
     generator: Generator = Generator.DEFAULT
     build_platform_info: Optional[BuildPlatformInfo] = None
 
     @staticmethod
-    def initialize(args: argparse.Namespace, deps_json_dir: str) -> "BuildOptions":
+    def initialize(args: argparse.Namespace) -> "BuildOptions":
         self = BuildOptions()
         self.clean_build = args.clean_build
         self.skip_download_source = args.skip_download_source
-        self.deps_json_dir = deps_json_dir
         self.generator = Generator(args.generator) if args.generator else Generator.DEFAULT
         self.build_platform_info = build_platform_info(args, self.generator)
         return self
@@ -980,8 +987,7 @@ def build_cmake_package(
 
     if recipe.source_patches:
         print_step("Applying patches")
-    for patch_file in recipe.source_patches:
-        patch_file_path = os.path.join(options.deps_json_dir, patch_file)
+    for patch_file_path in recipe.source_patches:
         print(f"Applying patch: {patch_file_path}")
         subprocess.run(["git", "apply", patch_file_path], cwd=src_sub_dir, check=True)
 
@@ -1042,7 +1048,7 @@ def find_package_in_caches(deps: DependenciesJson, package_name: str) -> Optiona
     return None
 
 
-def download_package(deps: DependenciesJson, package_name: str, target_dir: str, package_dir: str):
+def download_package(deps: DependenciesJson, package_name: str, deps_dir: str):
     cached_package = find_package_in_caches(deps, package_name)
     if not cached_package:
         print(f"Don't know how to download package: {package_name}")
@@ -1053,7 +1059,7 @@ def download_package(deps: DependenciesJson, package_name: str, target_dir: str,
     print(f"  Version: {version}")
 
     package_file_name = f"{package_name}_{version}.zip"
-    package_file_path = os.path.join(package_dir, package_file_name)
+    package_file_path = os.path.join(deps_dir, package_file_name)
     if os.path.isfile(package_file_path) and compute_sha256_64(package_file_path) == hash:
         print(f"  Package already downloaded: {package_file_path}")
     else:
@@ -1065,8 +1071,8 @@ def download_package(deps: DependenciesJson, package_name: str, target_dir: str,
             print_error(f"File hash: {downloaded_hash} expected: {hash}")
             exit(1)
 
-    print(f"  Unpacking to: {target_dir}")
-    shutil.unpack_archive(package_file_path, target_dir)
+    print(f"  Unpacking to: {deps_dir}")
+    shutil.unpack_archive(package_file_path, deps_dir)
     print("")
 
 
@@ -1078,16 +1084,16 @@ def download_package(deps: DependenciesJson, package_name: str, target_dir: str,
 def parse_arguments() -> argparse.Namespace:
     parser = argparse.ArgumentParser(
         prog="configure.py",
-        description="Configures libfwk-based projects including dependencies management "
+        description="Configures CMake/C++ projects including dependencies management "
         "(downloading, building and installation). ",
     )
     sub_parsers = parser.add_subparsers(help="Available commands:", dest="command")
 
     configure_parser = sub_parsers.add_parser(
         "configure",
-        help="[DEFAULT] Configure libfwk-based project (or libfwk itself) by running CMake with "
-        "proper settings and in appropriate environment. Currently it's mainly useful on Windows to"
-        " properly setup ninja or Visual Studio-based builds.",
+        help="[DEFAULT] Configure CMake/C++ project by running CMake with proper settings and "
+        "in an appropriate environment. Currently it's mainly useful on Windows"
+        " to properly & easily setup ninja or Visual Studio-based builds.",
     )
 
     download_parser = sub_parsers.add_parser(
@@ -1113,14 +1119,16 @@ def parse_arguments() -> argparse.Namespace:
             help="Path to the file with a list of packages to install. "
             "If not specified then dependencies.json in current directory will be used.",
         )
+        sub_parser.add_argument(
+            "-R",
+            "--root-dir",
+            type=str,
+            help="Specifies root project directory in which build/ and dependencies/ subdirs "
+            " will be created. If not specified then directory in which dependencies.json "
+            "file is located will be used. ",
+        )
 
     for sub_parser in [download_parser, build_parser, package_parser]:
-        sub_parser.add_argument(
-            "--target-dir",
-            type=str,
-            help="Target directory where dependencies will be unpacked/installed. "
-            "By default it is 'dependencies/' inside libfwk's directory.",
-        )
         sub_parser.add_argument(
             "--clean",
             action="store_true",
@@ -1131,13 +1139,6 @@ def parse_arguments() -> argparse.Namespace:
     list_parser.add_argument("--downloadable-only", action="store_true")
     list_parser.add_argument("--buildable-only", action="store_true")
     list_parser.add_argument("--platform", type=str, choices=valid_platforms())
-
-    download_parser.add_argument(
-        "--package-dir",
-        type=str,
-        help="Directory where downloaded packages will be stored. "
-        "By default it is 'dependencies/' inside libfwk's directory.",
-    )
 
     for sub_parser in [build_parser, package_parser]:
         sub_parser.add_argument(
@@ -1245,8 +1246,8 @@ def configure_main(args: argparse.Namespace):
 def list_deps(args: argparse.Namespace, deps_json: DependenciesJson):
     platform = args.platform or current_platform()
 
-    downloadable_deps = get_cached_package_names(deps_json, platform)
-    buildable_deps = get_buildable_package_names(deps_json, platform)
+    downloadable_deps = sorted(get_cached_package_names(deps_json, platform))
+    buildable_deps = sorted(get_buildable_package_names(deps_json, platform))
 
     if args.downloadable_only:
         deps = downloadable_deps
@@ -1260,9 +1261,8 @@ def list_deps(args: argparse.Namespace, deps_json: DependenciesJson):
 
 def dependencies_main(args: argparse.Namespace):
     deps_json_path = args.deps_file or os.path.join(os.getcwd(), "dependencies.json")
-    deps_json_dir = os.path.dirname(os.path.abspath(deps_json_path))
-    with open(deps_json_path, "r") as file:
-        deps_json = DependenciesJson.parse(json.load(file))
+    deps_json = DependenciesJson.parse(deps_json_path)
+    root_dir = args.root_dir or os.path.dirname(os.path.abspath(deps_json_path))
 
     if args.command == "list-deps":
         list_deps(args, deps_json)
@@ -1278,8 +1278,7 @@ def dependencies_main(args: argparse.Namespace):
         print_error(f"The following requested dependencies are not available: {unavailable_deps}")
         exit(1)
 
-    default_target_dir = os.path.join(libfwk_path(), "dependencies")
-    target_dir = os.path.abspath(args.target_dir or default_target_dir)
+    deps_dir = os.path.join(root_dir, "dependencies")
 
     # TODO: multithreading for downloading & unpacking?
     if args.command == "download-deps":
@@ -1287,24 +1286,24 @@ def dependencies_main(args: argparse.Namespace):
         if args.dependencies is None and args.clean is None:
             args.clean = True
 
-        prepare_target_dir(target_dir, args.clean)
+        prepare_target_dir(deps_dir, args.clean)
         for dep in selected_deps:
-            download_package(deps_json, dep, target_dir, target_dir)
+            download_package(deps_json, dep, deps_dir)
 
     elif args.command == "build-deps":
-        build_dir = os.path.join(libfwk_path(), "build", "dependencies")
-        build_options = BuildOptions.initialize(args, deps_json_dir)
+        build_dir = os.path.join(root_dir, "build", "dependencies")
+        build_options = BuildOptions.initialize(args)
 
-        prepare_target_dir(target_dir, args.clean)
+        prepare_target_dir(deps_dir, args.clean)
         for dep in selected_deps:
             package_build_dir = os.path.join(build_dir, dep)
-            build_package(deps_json, dep, target_dir, package_build_dir, build_options)
+            build_package(deps_json, dep, deps_dir, package_build_dir, build_options)
 
     elif args.command == "package-deps":
-        build_dir = os.path.join(libfwk_path(), "build", "dependencies")
-        build_options = BuildOptions.initialize(args, deps_json_dir)
+        build_dir = os.path.join(root_dir, "build", "dependencies")
+        build_options = BuildOptions.initialize(args)
 
-        prepare_dir(target_dir, args.clean)
+        prepare_dir(deps_dir, args.clean)
         download_strings = []
         for dep in selected_deps:
             package_build_dir = os.path.join(build_dir, dep)
@@ -1314,7 +1313,7 @@ def dependencies_main(args: argparse.Namespace):
                 deps_json, dep, package_target_dir, package_build_dir, build_options
             )
             zip_file_base = f"{dep}_{version}"
-            zip_path = zip_directory(package_target_dir, os.path.join(target_dir, zip_file_base))
+            zip_path = zip_directory(package_target_dir, os.path.join(deps_dir, zip_file_base))
             hash = compute_sha256_64(zip_path)
             download_strings.append(f"{dep}:{version}:{hash}")
 
