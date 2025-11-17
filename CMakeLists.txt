@@ -24,6 +24,9 @@ option(FWK_UNITY_BUILD "Enable unity builds for faster compilation" OFF)
 
 option(FWK_GEOM "Enable geometry module" ON)
 
+set(FWK_DEPENDENCIES_DIR "${CMAKE_CURRENT_SOURCE_DIR}/dependencies" CACHE PATH
+	"Directory containing libfwk dependencies")
+
 if(EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/extern/imgui/imgui.h")
 option(FWK_IMGUI "Enable ImGui support" ON)
 else()
@@ -39,6 +42,7 @@ message(STATUS "FWK: Build tools = ${FWK_BUILD_TOOLS}")
 message(STATUS "FWK: Unity build = ${FWK_UNITY_BUILD}")
 message(STATUS "FWK: Enable geometry module = ${FWK_GEOM}")
 message(STATUS "FWK: Enable ImGui support = ${FWK_IMGUI}")
+message(STATUS "FWK: Dependencies dir = ${FWK_DEPENDENCIES_DIR}")
 
 # =================================================================================================
 # region                   Compiler configuration & default compiler flags
@@ -233,12 +237,12 @@ include_directories(src/ extern/imgui/)
 
 target_include_directories(libfwk
   PUBLIC  ${CMAKE_CURRENT_SOURCE_DIR}/include
-  PUBLIC  ${CMAKE_CURRENT_SOURCE_DIR}/dependencies/include
-  PUBLIC  ${CMAKE_CURRENT_SOURCE_DIR}/dependencies/include/freetype2
+  PUBLIC  ${FWK_DEPENDENCIES_DIR}/include
+  PUBLIC  ${FWK_DEPENDENCIES_DIR}/include/freetype2
   PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/src)
 
 target_link_directories(libfwk
-  PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/dependencies/lib)
+  PUBLIC ${FWK_DEPENDENCIES_DIR}/lib)
 
 
 if(WIN32)
