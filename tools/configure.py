@@ -235,7 +235,7 @@ def get_vcvars_environment(vcvars_path: str) -> dict:
     temp_batch_file = os.path.join(temp_dir, "temp_vcvars.bat")
     with open(temp_batch_file, "w") as f:
         f.write(f'@call "{vcvars_path}"\n')
-        f.write(f"@set\n")
+        f.write("@set\n")
     cmd = ["cmd", "/q", "/c", temp_batch_file]
 
     try:
