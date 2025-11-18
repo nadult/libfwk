@@ -28,16 +28,13 @@ jobs:
 
       - if: ${{ steps.cache-deps.outputs.cache-hit != 'true' }}
         name: Install dependencies
-        run: |
-          python tools\configure.py download-deps
+        run:  python tools\configure.py download-deps
 
       - name: Configure libfwk, tests & tools
-        run: |
-          python tools\configure.py -G ninja-clang-cl -T Debug -DFWK_UNITY_BUILD=ON
+        run:  python tools\configure.py -G ninja-clang-cl -T Debug -DFWK_UNITY_BUILD=ON
 
       - name: Build libfwk, tests & tools
-        run: |
-          cmake --build build --parallel
+        run:  cmake --build build --parallel
 
       - name: Run tests
         run: |
@@ -57,8 +54,7 @@ jobs:
           submodules: 'true'
 
       - name: Download dependencies
-        run: |
-          python tools/configure.py download-deps
+        run:  python tools/configure.py download-deps
 
       - name: Configure libfwk
         run: |
@@ -66,8 +62,7 @@ jobs:
           python tools/configure.py -G ninja -T Debug -DFWK_UNITY_BUILD=ON
 
       - name: Build libfwk, tests & tools
-        run: |
-          cmake --build build -j8
+        run:  cmake --build build -j8
 
       - name: Run tests
         run: |
@@ -93,17 +88,14 @@ jobs:
           architecture: 'x64'
 
       - name: Install Dependencies
-        run: |
-          pip install black
+        run:  pip install black
 
       - name: Check C++ formatting
-        run: |
-          python tools/format.py -c
+        run:  python tools/format.py -c
 
       - name: Check Python formatting
-        if: '!cancelled()'
-        run: |
-          python tools/format.py -p -c
+        if:   '!cancelled()'
+        run:  python tools/format.py -p -c
 
   lint-python:
     runs-on: ubuntu-24.04
@@ -118,9 +110,7 @@ jobs:
           python-version: '3.12'
 
       - name: Install ruff
-        run: |
-          pip install ruff
+        run:  pip install ruff
 
       - name: Lint Python code
-        run: |
-          ruff check tools --output-format=full --force-exclude --ignore E401
+        run:  ruff check tools --output-format=full --force-exclude --ignore E401

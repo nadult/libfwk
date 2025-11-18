@@ -15,18 +15,13 @@ from urllib.parse import urlparse
 # TODO: add build command as well?
 # TODO: unify cmake classes from configure & build commands?
 # TODO: build package, etc should by default handle only buildable packages? Missing packages should
-# only generate a warning.
+#       only generate a warning?
 # TODO: rename packages -> dependencies in appropriate places
 # TODO: verify that ninja is installed?
 # TODO: verify that dependencies are downloaded/built correctly before running configure?
 # TODO: iterator_debug_level in shaderc-combined
 # TODO: Fix shaderc-combined: it's too large... unity-builds for spirv-opt?
 # TODO: better printing for conan command
-# TODO: verify that libfwk is buildable with built dependencies? that would be costly?
-# TODO: add option to clean build directories?
-# TODO: rename windows/libraries to windows/dependencies?
-# TODO: building missing packages on ubuntu
-# TODO: ubuntu & windows package building in github action (runnable on demand)
 # TODO: autoclear when package configuration changed? we could store keys and compare them
 
 # =================================================================================================
