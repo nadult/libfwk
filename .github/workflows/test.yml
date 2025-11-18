@@ -104,3 +104,23 @@ jobs:
         if: '!cancelled()'
         run: |
           python tools/format.py -p -c
+
+  lint-python:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          submodules: 'true'
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Install ruff
+        run: |
+          pip install ruff
+
+      - name: Lint Python code
+        run: |
+          ruff check tools --output-format=full --force-exclude --ignore E401
