@@ -3,6 +3,8 @@
 
 #pragma once
 
+#include "fwk/sys/intellisense_fix.h"
+
 #include <type_traits>
 
 namespace fwk {
