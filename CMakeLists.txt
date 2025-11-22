@@ -499,7 +499,7 @@ set(SRC_geom_voronoi
 )
 
 set(SRC_gui_imgui1 ../extern/imgui/imgui.cpp)
-set(SRC_gui_imgui2 ../extern/imgui/imgui_draw.cpp)
+set(SRC_gui_imgui2 ../extern/imgui/imgui_draw.cpp ../extern/imgui/misc/freetype/imgui_freetype.cpp)
 set(SRC_gui_imgui3 ../extern/imgui/imgui_widgets.cpp ../extern/imgui/imgui_tables.cpp)
 set(SRC_gui_imgui_demo ../extern/imgui/imgui_demo.cpp)
 set(SRC_gui
@@ -517,6 +517,8 @@ endif()
 
 if(FWK_IMGUI)
 	list(APPEND MODULES gui_imgui1 gui_imgui2 gui_imgui3 gui)
+	set_source_files_properties(src/../extern/imgui/imgui_draw.cpp
+								PROPERTIES COMPILE_DEFINITIONS IMGUI_ENABLE_FREETYPE)
 	if(FWK_IMGUI_DEMO)
 		list(APPEND MODULES gui_imgui_demo)
 	endif()
