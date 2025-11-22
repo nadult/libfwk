@@ -109,18 +109,18 @@ function(fwk_add_program GROUP NAME)
 	set_target_properties(${TARGET_NAME} PROPERTIES RUNTIME_OUTPUT_NAME "${NAME}")
 endfunction()
 
-function(fwk_add_module NAME)
-	set(_SOURCES ${SRC_${NAME}})
+function(fwk_add_module TARGET_NAME MODULE_NAME)
+	set(_SOURCES ${SRC_${MODULE_NAME}})
 	list(TRANSFORM _SOURCES PREPEND "src/")
-	set(_HEADERS ${HDR_${NAME}})
+	set(_HEADERS ${HDR_${MODULE_NAME}})
 	list(TRANSFORM _HEADERS PREPEND "include/fwk/")
 
-	string(REGEX REPLACE "_.*" "" GROUP_NAME ${NAME}) 
+	string(REGEX REPLACE "_.*" "" GROUP_NAME ${MODULE_NAME})
 	source_group("${GROUP_NAME}" FILES ${_SOURCES})
 	source_group("${GROUP_NAME}" FILES ${_HEADERS})
-	target_sources(libfwk PRIVATE ${_SOURCES})
-	target_sources(libfwk PUBLIC FILE_SET HEADERS BASE_DIRS include FILES ${_HEADERS})
-	set_source_files_properties(${_SOURCES} PROPERTIES UNITY_GROUP "${NAME}")
+	target_sources(${TARGET_NAME} PRIVATE ${_SOURCES})
+	target_sources(${TARGET_NAME} PUBLIC FILE_SET HEADERS BASE_DIRS include FILES ${_HEADERS})
+	set_source_files_properties(${_SOURCES} PROPERTIES UNITY_GROUP "${MODULE_NAME}")
 endfunction()
 
 
@@ -527,7 +527,7 @@ endif()
 add_library(libfwk STATIC)
 
 foreach(MODULE ${MODULES})
-	fwk_add_module(${MODULE})
+	fwk_add_module(libfwk ${MODULE})
 endforeach()
 
 
