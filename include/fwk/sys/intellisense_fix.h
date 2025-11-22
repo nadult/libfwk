@@ -1,9 +1,9 @@
 // Copyright (C) Krzysztof Jakubowski <nadult@fastmail.fm>
 // This file is part of libfwk. See license.txt for details.
 
-// This file contains fixes for Intellisense parsing issues when using together with clang-cl.
-// These issues show up in latest version (November 2025) of Visual Studio 2022, but are possibly
-// fixed in VS 2026.
+// This file contains fixes for Intellisense parsing issues when used together with clang-cl.
+// These issues show up in the latest version (November 2025) of Visual Studio 2022, but are
+// possibly fixed in VS 2026.
 
 // Source: https://developercommunity.visualstudio.com/t/A-lot-of-false-positives-when-using-clan/10839013
 
