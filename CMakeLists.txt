@@ -33,6 +33,8 @@ else()
 option(FWK_IMGUI "Enable ImGui support" OFF)
 endif()
 
+option(FWK_IMGUI_DEMO "Enable ImGui demo window in ImGui-based apps" OFF)
+
 # Export to cache so other included files can see the choices
 set(FWK_BUILD_TESTS ${FWK_BUILD_TESTS} CACHE BOOL "Enable building of tests" FORCE)
 set(FWK_BUILD_TOOLS ${FWK_BUILD_TOOLS} CACHE BOOL "Enable building of tools" FORCE)
@@ -496,10 +498,10 @@ set(SRC_geom_voronoi
 	geom/wide_int.cpp
 )
 
-set(SRC_gui_imgui1 ../extern/imgui/imgui_base.cpp)
+set(SRC_gui_imgui1 ../extern/imgui/imgui.cpp)
 set(SRC_gui_imgui2 ../extern/imgui/imgui_draw.cpp)
 set(SRC_gui_imgui3 ../extern/imgui/imgui_widgets.cpp ../extern/imgui/imgui_tables.cpp)
-set(SRC_gui_imgui4 ../extern/imgui/imgui_demo.cpp)
+set(SRC_gui_imgui_demo ../extern/imgui/imgui_demo.cpp)
 set(SRC_gui
 	gui/gui.cpp
 	gui/popups.cpp
@@ -514,7 +516,10 @@ if(FWK_GEOM)
 endif()
 
 if(FWK_IMGUI)
-	list(APPEND MODULES gui_imgui1 gui_imgui2 gui_imgui3 gui_imgui4 gui)
+	list(APPEND MODULES gui_imgui1 gui_imgui2 gui_imgui3 gui)
+	if(FWK_IMGUI_DEMO)
+		list(APPEND MODULES gui_imgui_demo)
+	endif()
 endif()
 
 add_library(libfwk STATIC)
