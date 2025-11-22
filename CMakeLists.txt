@@ -416,7 +416,7 @@ set(HDR_vulkan
 set(SRC_vulkan
 	# It has to be first for unity builds: it includes volk.c
 	vulkan/vulkan_internal.cpp
-	
+
 	vulkan/vulkan_buffer.cpp
 	vulkan/vulkan_command_queue.cpp
 	vulkan/vulkan_descriptor_manager.cpp
@@ -496,6 +496,17 @@ set(SRC_geom_voronoi
 	geom/wide_int.cpp
 )
 
+set(SRC_gui_imgui1 ../extern/imgui/imgui_base.cpp)
+set(SRC_gui_imgui2 ../extern/imgui/imgui_draw.cpp)
+set(SRC_gui_imgui3 ../extern/imgui/imgui_widgets.cpp ../extern/imgui/imgui_tables.cpp)
+set(SRC_gui_imgui4 ../extern/imgui/imgui_demo.cpp)
+set(SRC_gui
+	gui/gui.cpp
+	gui/popups.cpp
+	gui/widgets.cpp
+	perf/analyzer.cpp
+)
+
 set(MODULES base sys math gfx gfx_font gfx_mesh vulkan gfx_stbi audio perf)
 
 if(FWK_GEOM)
@@ -503,16 +514,6 @@ if(FWK_GEOM)
 endif()
 
 if(FWK_IMGUI)
-	set(SRC_gui_imgui1 gui/imgui_base.cpp)
-	set(SRC_gui_imgui2 gui/imgui_draw.cpp)
-	set(SRC_gui_imgui3 gui/imgui_widgets.cpp gui/imgui_tables.cpp)
-	set(SRC_gui_imgui4 gui/imgui_demo.cpp)
-	set(SRC_gui
-		gui/gui.cpp
-		gui/popups.cpp
-		gui/widgets.cpp
-		perf/analyzer.cpp
-	)
 	list(APPEND MODULES gui_imgui1 gui_imgui2 gui_imgui3 gui_imgui4 gui)
 endif()
 
@@ -521,7 +522,6 @@ add_library(libfwk STATIC)
 foreach(MODULE ${MODULES})
 	fwk_add_module(${MODULE})
 endforeach()
-
 
 
 if(FWK_BUILD_TESTS)
