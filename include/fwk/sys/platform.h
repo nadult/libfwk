@@ -3,6 +3,8 @@
 
 #pragma once
 
+#include "fwk/sys/intellisense_fix.h"
+
 #ifdef __linux__
 #define FWK_PLATFORM_LINUX 1
 #ifdef linux
