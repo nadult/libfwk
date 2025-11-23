@@ -12,6 +12,7 @@ from urllib.parse import urlparse
 # from potentially unsafe sources (like libfwk github) from those which can be built locally
 # or downloaded from conan center.
 
+# TODO: add install-files and settings to conan recipes
 # TODO: add build command as well?
 # TODO: unify cmake classes from configure & build commands?
 # TODO: build package, etc should by default handle only buildable packages? Missing packages should
@@ -383,7 +384,7 @@ def _make_pattern_validators():
     platform_name = r"(windows|linux)"
     build_type = r"(release|debug)"
     build_suffix = r"[a-z][a-z0-9-]*"
-    query_name = r"[a-z][a-z0-9-]*"
+    conan_option = r"[a-z][a-z0-9-_]*=(True|False)"
     sha256_64 = r"[a-f0-9]{16}"
     sha1 = r"[a-f0-9]{40}"
     version = r"\d+(\.\d+)*(-\d+)?"
@@ -396,8 +397,7 @@ def _make_pattern_validators():
         "package_name": _PatternValidator(package_name),
         "package_name_version": _PatternValidator(rf"{package_name}:{version}"),
         "package_name_version_hash": _PatternValidator(rf"{package_name}:{version}:{sha256_64}"),
-        "package_name_version_query": _PatternValidator(rf"{package_name}:{version}:{query_name}"),
-        "query_name": _PatternValidator(query_name),
+        "conan_option": _PatternValidator(conan_option),
         "sha1": _PatternValidator(sha1),
     }
 
@@ -474,29 +474,49 @@ class PackageCache:
 
 
 @dataclass
-class ConanRecipes:
-    platform: Optional[str]
-    queries: dict[str, str] = field(default_factory=dict)
-    # Triples: package_name:version:query_name
-    packages: list[str] = field(default_factory=list)
+class ConanRecipe:
+    name: str
+    version: str
+    options: list[str] = field(default_factory=list)
+    platform: Optional[str] = None
+    platform_agnostic: bool = False
 
     @staticmethod
-    def parse(json: dict) -> "ConanRecipes":
+    def parse(json: dict) -> "ConanRecipe":
         if not isinstance(json, dict):
             raise TypeError("conan-recipe must be a dictionary")
+        name_version = json.get("package")
+        options = json.get("options", [])
         platform = json.get("platform")
-        queries = json.get("queries", {})
-        packages = json.get("packages", [])
-        _validate_dict_type("conan-recipes.queries", queries, str, str)
-        _validate_list_type("conan-recipes.packages", packages, str)
-        _validate_pattern("query_name", "conan-recipes.queries keys", list(queries.keys()))
-        _validate_pattern("package_name_version_query", "conan-recipes.packages", packages)
+        _validate_pattern("package_name_version", "conan-recipe.package", [name_version])
+        platform_agnostic = json.get("platform-agnostic", False)
+        name, version = name_version.split(":")
+        _validate_pattern("conan_option", "conan-recipe.options", options)
         if platform:
-            _validate_pattern("platform_name", "conan-recipes.platform", [platform])
-        return ConanRecipes(platform, queries, packages)
+            _validate_pattern("platform_name", "conan-recipe.platform", [platform])
+        return ConanRecipe(name, version, options, platform, platform_agnostic)
 
     def matches_platform(self, platform: str) -> bool:
         return not self.platform or platform == self.platform
+
+    def reference(self) -> str:
+        return f"{self.name}/{self.version}"
+
+    def package_query(self, platform: str) -> str:
+        conan_platform = "Windows" if platform == "windows" else "Linux"
+        pattern = "" if self.platform_agnostic else f"os={conan_platform} and arch=x86_64"
+        for option in self.options:
+            pattern += f" and options.{option}"
+        return pattern
+
+    def package_query_install_commands(self, platform: str) -> list[str]:
+        conan_platform = "Windows" if platform == "windows" else "Linux"
+        commands = []
+        if not self.platform_agnostic:
+            commands += ["-s", f"os={conan_platform}", "-s", "arch=x86_64"]
+        for option in self.options:
+            commands += ["-o", f"&:{option}"]
+        return commands
 
 
 @dataclass
@@ -611,7 +631,7 @@ class CMakeRecipe:
 class DependenciesJson:
     dependencies: list[str] = field(default_factory=list)
     package_caches: list[PackageCache] = field(default_factory=list)
-    conan_recipes: list[ConanRecipes] = field(default_factory=list)
+    conan_recipes: list[ConanRecipe] = field(default_factory=list)
     cmake_recipes: list[CMakeRecipe] = field(default_factory=list)
 
     @staticmethod
@@ -629,7 +649,7 @@ class DependenciesJson:
         json_cmake_recipes = json_root.get("cmake-recipes", [])
 
         package_caches = [PackageCache.parse(js) for js in json_package_caches]
-        conan_recipes = [ConanRecipes.parse(js) for js in json_conan_recipes]
+        conan_recipes = [ConanRecipe.parse(js) for js in json_conan_recipes]
         cmake_recipes = [CMakeRecipe.parse(js, dir_path) for js in json_cmake_recipes]
 
         json_includes = json_root.get("includes", [])
@@ -703,10 +723,9 @@ class BuildOptions:
 
 def get_buildable_package_names(deps: DependenciesJson, platform: str) -> list[str]:
     names = []
-    for conan_recipes in deps.conan_recipes:
-        if conan_recipes.matches_platform(platform):
-            for pkg in conan_recipes.packages:
-                names.append(pkg.split(":")[0])
+    for conan_recipe in deps.conan_recipes:
+        if conan_recipe.matches_platform(platform):
+            names.append(conan_recipe.name)
 
     for recipe in deps.cmake_recipes:
         if recipe.matches_platform(platform):
@@ -716,34 +735,46 @@ def get_buildable_package_names(deps: DependenciesJson, platform: str) -> list[s
 
 def build_package(
     deps: DependenciesJson,
-    package_name: str,
+    name: str,
     target_dir: str,
     build_dir: str,
     options: BuildOptions,
 ) -> str:
-    conan_recipe = find_conan_recipe(deps, package_name, options.platform)
+    conan_recipe = find_conan_recipe(deps, name, options.platform)
     if conan_recipe:
-        packages = conan_list_packages(conan_recipe)
+        print(f"Building from conan recipe: {stylize_text(name, Color.DEFAULT, Style.BOLD)}")
+        print(f"  Version: {conan_recipe.version}")
+
+        packages = conan_list_local_packages(conan_recipe, options.platform)
+        reference = conan_recipe.reference()
         if not packages:
-            print(f"Downloading: {conan_recipe.pattern()}")
-            packages = conan_download_packages(conan_recipe)
+            print(f"  Trying download from conan-center: {reference}")
+            packages = conan_download_packages(conan_recipe, options.platform)
         if not packages:
-            print(f"Didn't download any matching packages for: {conan_recipe.pattern()}")
+            print(f"  Building locally: {reference}")
+            conan_build_packages(conan_recipe, options.platform)
+            packages = conan_list_local_packages(conan_recipe, options.platform)
+        if not packages:
+            print(f"  Couldn't build or download any matching packages for: {reference}")
             exit(1)
 
         package = conan_get_best_package(packages)
         package_path = conan_get_package_path(package)
 
-        print(f"Installing {package.pattern()} from: {package_path}")
+        print(f"  Installing {package.package_reference()}\n    from: {package_path}")
         copy_subdirs(target_dir, package_path, ["include", "lib", "bin"])
+        print("")
         return package.version
 
-    cmake_recipe = find_cmake_recipe(deps, package_name, options.platform)
+    cmake_recipe = find_cmake_recipe(deps, name, options.platform)
     if cmake_recipe:
+        print(f"Building from cmake recipe: {stylize_text(name, Color.DEFAULT, Style.BOLD)}")
+        print(f"  Version: {cmake_recipe.version}")
         build_cmake_package(cmake_recipe, target_dir, build_dir, options)
+        print("")
         return cmake_recipe.version
 
-    assert False, f"Don't know how to build package: '{package_name}'"
+    assert False, f"Don't know how to build package: '{name}'"
 
 
 # =================================================================================================
@@ -760,41 +791,26 @@ class ConanPackageInfo:
     settings: dict
     options: dict
 
-    def pattern(self):
+    def package_reference(self):
         return f"{self.name}/{self.version}:{self.package_id}"
 
 
-# TODO: rename to ConanRecipeQuery?
-@dataclass
-class ConanPackageQuery:
-    name: str
-    version: str
-    query: str = ""
-
-    def pattern(self):
-        return f"{self.name}/{self.version}"
-
-
 def find_conan_recipe(
-    deps_json: DependenciesJson, package_name: str, platform: str
-) -> Optional[ConanPackageQuery]:
-    for conan_recipes in deps_json.conan_recipes:
-        if not conan_recipes.matches_platform(platform):
+    deps_json: DependenciesJson, name: str, platform: str
+) -> Optional[ConanRecipe]:
+    for conan_recipe in deps_json.conan_recipes:
+        if not conan_recipe.matches_platform(platform):
             continue
-        for pkg in conan_recipes.packages:
-            name, version, query_name = pkg.split(":")
-            if name == package_name:
-                query = conan_recipes.queries.get(query_name)
-                assert query is not None
-                return ConanPackageQuery(package_name, version, query)
+        if conan_recipe.name == name:
+            return conan_recipe
     return None
 
 
-def conan_parse_packages_json(query: str, json_text: str) -> list[ConanPackageInfo]:
+def conan_parse_packages_json(recipe: ConanRecipe, json_text: str) -> list[ConanPackageInfo]:
     local_cache = json.loads(json_text)["Local Cache"]
     if "error" in local_cache:
         return []
-    revs = local_cache[query.pattern()]["revisions"]
+    revs = local_cache[recipe.reference()]["revisions"]
     out = []
     for rev_id in revs.keys():
         packages = revs[rev_id]["packages"]
@@ -803,7 +819,7 @@ def conan_parse_packages_json(query: str, json_text: str) -> list[ConanPackageIn
             settings = info.get("settings", {})
             options = info.get("options", {})
             out.append(
-                ConanPackageInfo(query.name, query.version, rev_id, package_id, settings, options)
+                ConanPackageInfo(recipe.name, recipe.version, rev_id, package_id, settings, options)
             )
     return out
 
@@ -856,30 +872,43 @@ def conan_command() -> list[str]:
     return _conan_command
 
 
-def conan_list_packages(query: ConanPackageQuery) -> list[ConanPackageInfo]:
-    command = conan_command() + ["list", "-c", "-f", "json", f"{query.pattern()}:*"]
-    if query.query:
-        command += ["-p", query.query]
-    # print("List command: " + str(command))
+def conan_list_local_packages(recipe: ConanRecipe, platform: str) -> list[ConanPackageInfo]:
+    command = conan_command() + ["list", "-c", "-f", "json"]
+    command += [f"{recipe.reference()}:*"]
+    command += ["-p", recipe.package_query(platform)]
+    # print("List command: " + " ".join(command))
 
     result = subprocess.run(command, stderr=subprocess.PIPE, stdout=subprocess.PIPE)
     if result.returncode != 0:
-        print(f"Error while getting package info: {query.pattern()}")
+        print(f"Error while getting package info: {recipe.reference()}")
         exit(1)
-    return conan_parse_packages_json(query, result.stdout.decode("utf-8"))
+    return conan_parse_packages_json(recipe, result.stdout.decode("utf-8"))
 
 
-def conan_download_packages(query: ConanPackageQuery) -> list[ConanPackageInfo]:
-    command = conan_command() + ["download", "-r", "conancenter", query.pattern(), "-f", "json"]
-    if query.query:
-        command += ["-p", query.query]
-    # print("Download command: " + str(command))
+def conan_download_packages(recipe: ConanRecipe, platform: str) -> list[ConanPackageInfo]:
+    command = conan_command() + ["download", "-r", "conancenter"]
+    command += [recipe.reference(), "-f", "json"]
+    command += ["-p", recipe.package_query(platform)]
+    # print("Download command: " + " ".join(command))
 
     result = subprocess.run(command, stderr=subprocess.PIPE, stdout=subprocess.PIPE)
     if result.returncode != 0:
-        print(f"Error while downloading dependency: {query.pattern()}")
+        print(f"Error while downloading dependency: {recipe.reference()}")
         exit(1)
-    return conan_parse_packages_json(query, result.stdout.decode("utf-8"))
+    return conan_parse_packages_json(recipe, result.stdout.decode("utf-8"))
+
+
+def conan_build_packages(recipe: ConanRecipe, platform: str):
+    command = conan_command() + ["install", "--requires", recipe.reference()]
+    command += ["--envs-generation=false", "--build=missing", "-s", "build_type=Release"]
+    command += recipe.package_query_install_commands(platform)
+    print("  Build command: " + " ".join(command))
+
+    result = subprocess.run(command)
+    if result.returncode != 0:
+        print(f"  Error while building dependency: {recipe.reference()}")
+        print("  Build command: " + " ".join(command))
+        exit(1)
 
 
 def conan_get_best_package(packages: list[ConanPackageInfo]) -> ConanPackageInfo:
@@ -893,10 +922,10 @@ def conan_get_best_package(packages: list[ConanPackageInfo]) -> ConanPackageInfo
 
 
 def conan_get_package_path(info: ConanPackageInfo):
-    command = conan_command() + ["cache", "path", info.pattern()]
+    command = conan_command() + ["cache", "path", info.package_reference()]
     result = subprocess.run(command, stdout=subprocess.PIPE)
     if result.returncode != 0:
-        print(f"Error while retrieving package path for: {info.pattern()}")
+        print(f"Error while retrieving package path for: {info.package_reference()}")
         exit(1)
     return result.stdout.decode("utf-8").split()[0]
 
@@ -907,10 +936,10 @@ def conan_get_package_path(info: ConanPackageInfo):
 
 
 def find_cmake_recipe(
-    deps_json: DependenciesJson, package_name: str, platform: str
+    deps_json: DependenciesJson, name: str, platform: str
 ) -> Optional[CMakeRecipe]:
     for recipe in deps_json.cmake_recipes:
-        if recipe.name == package_name and recipe.matches_platform(platform):
+        if recipe.name == name and recipe.matches_platform(platform):
             return recipe
     return None
 
@@ -1285,6 +1314,7 @@ def dependencies_main(args: argparse.Namespace):
             download_package(deps_json, dep, deps_dir)
 
     elif args.command == "build-deps":
+        print_title("Building dependencies", Color.DEFAULT, Style.BOLD)
         build_dir = os.path.join(root_dir, "build", "dependencies")
         build_options = BuildOptions.initialize(args)
 
@@ -1294,6 +1324,7 @@ def dependencies_main(args: argparse.Namespace):
             build_package(deps_json, dep, deps_dir, package_build_dir, build_options)
 
     elif args.command == "package-deps":
+        print_title("Building dependency packages", Color.DEFAULT, Style.BOLD)
         build_dir = os.path.join(root_dir, "build", "dependencies")
         build_options = BuildOptions.initialize(args)
 

@@ -45,36 +45,24 @@
   ],
   "conan-recipes": [
       {
-        "queries": {
-          "any": ""
-        },
-        "packages": [
-          "vulkan-headers:1.3.236.0:any"
-        ]
+        "platform-agnostic": "true",
+        "package": "vulkan-headers:1.3.236.0"
       },
       {
-        "platform": "windows",
-        "queries": {
-          "static": "os=Windows and arch=x86_64 and options.shared=False"
-        },
-        "packages": [
-          "zlib:1.3.1:static",
-          "ogg:1.3.5:static",
-          "vorbis:1.3.7:static",
-          "openal-soft:1.23.1:static"
-        ]
+        "options:": [ "shared=False" ],
+        "package": "zlib:1.3.1"
       },
       {
-        "platform": "linux",
-        "queries": {
-          "static": "os=Linux and arch=x86_64 and options.shared=False"
-        },
-        "packages": [
-          "zlib:1.3.1:static",
-          "ogg:1.3.5:static",
-          "vorbis:1.3.7:static",
-          "openal-soft:1.23.1:static"
-        ]
+        "options:": [ "shared=False" ],
+        "package": "ogg:1.3.5"
+      },
+      {
+        "options:": [ "shared=False" ],
+        "package": "vorbis:1.3.7"
+      },
+      {
+        "options:": [ "shared=False" ],
+        "package": "openal-soft:1.23.1"
       }
   ],
   "cmake-recipes": [
