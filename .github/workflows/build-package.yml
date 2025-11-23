@@ -12,6 +12,10 @@ on:
       runner_os:
         required: true
         type: string
+      libfwk_path:
+        required: false
+        type: string
+        default: .
   workflow_call:
     inputs:
       dependency:
@@ -20,6 +24,10 @@ on:
       runner_os:
         required: true
         type: string
+      libfwk_path:
+        required: false
+        type: string
+        default: .
 
 env:
   PYTHONUNBUFFERED: 1
@@ -45,7 +53,7 @@ jobs:
 
     - name: Build dependency package
       run: |
-        python tools/configure.py package-deps ${{ inputs.dependency }}
+        python ${{ inputs.libfwk_path }}/tools/configure.py package-deps ${{ inputs.dependency }}
 
     - name: Upload artifact
       uses: actions/upload-artifact@v4

@@ -76,7 +76,6 @@
           "openal-soft:1.23.1:static"
         ]
       }
-
   ],
   "cmake-recipes": [
     {
