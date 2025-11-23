@@ -5,7 +5,17 @@ name: Build dependencies
 
 on:
   workflow_dispatch:
+    inputs:
+      libfwk_path:
+        required: false
+        type: string
+        default: .
   workflow_call:
+    inputs:
+      libfwk_path:
+        required: false
+        type: string
+        default: .
   push:
     branches:
       - main
@@ -36,8 +46,8 @@ jobs:
     - name: List buildable packages
       id: list-dependencies
       run: |
-        deps_windows=$(python tools/configure.py list-deps --buildable-only --platform windows)
-        deps_linux=$(python tools/configure.py list-deps --buildable-only --platform linux)
+        deps_windows=$(python ${{ inputs.libfwk_path }}/tools/configure.py list-deps --buildable-only --platform windows)
+        deps_linux=$(python ${{ inputs.libfwk_path }}/tools/configure.py list-deps --buildable-only --platform linux)
         echo deps-windows: $deps_windows
         echo deps-linux: $deps_linux
 
@@ -61,6 +71,7 @@ jobs:
     with:
       dependency: ${{ matrix.dependency }}
       runner_os: windows-2025
+      libfwk_path: ${{ inputs.libfwk_path }}
 
   build-packages-linux:
     needs: list-dependencies
@@ -72,6 +83,7 @@ jobs:
     with:
       dependency: ${{ matrix.dependency }}
       runner_os: ubuntu-22.04
+      libfwk_path: ${{ inputs.libfwk_path }}
 
   merge-artifacts:
     name: Merge artifacts
