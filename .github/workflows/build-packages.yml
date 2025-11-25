@@ -10,12 +10,28 @@ on:
         required: false
         type: string
         default: .
+      deps_linux:
+        required: false
+        type: string
+        default: ''
+      deps_windows:
+        required: false
+        type: string
+        default: ''
   workflow_call:
     inputs:
       libfwk_path:
         required: false
         type: string
         default: .
+      deps_linux:
+        required: false
+        type: string
+        default: ''
+      deps_windows:
+        required: false
+        type: string
+        default: ''
   push:
     branches:
       - main
@@ -31,11 +47,13 @@ jobs:
   list-dependencies:
     runs-on: ubuntu-22.04
     outputs:
-      deps-windows: ${{ steps.list-dependencies.outputs.deps-windows }}
-      deps-linux: ${{ steps.list-dependencies.outputs.deps-linux }}
+      deps-windows: ${{ inputs.deps_windows || steps.list-dependencies.outputs.deps-windows }}
+      deps-linux: ${{ inputs.deps_linux || steps.list-dependencies.outputs.deps-linux }}
       sha1-short: ${{ steps.list-dependencies.outputs.sha1-short }}
     steps:
     - uses: actions/checkout@v4
+      with:
+        submodules: 'true'
 
     - name: Set up Python
       uses: actions/setup-python@v5
@@ -46,6 +64,7 @@ jobs:
     - name: List buildable packages
       id: list-dependencies
       run: |
+        ls .
         deps_windows=$(python ${{ inputs.libfwk_path || '.' }}/tools/configure.py list-deps --buildable-only --platform windows)
         deps_linux=$(python ${{ inputs.libfwk_path || '.' }}/tools/configure.py list-deps --buildable-only --platform linux)
         echo deps-windows: $deps_windows
@@ -58,7 +77,6 @@ jobs:
         echo "deps-linux<<EOF" >> $GITHUB_OUTPUT
         echo "$deps_linux" >> $GITHUB_OUTPUT
         echo "EOF" >> $GITHUB_OUTPUT
-
         echo sha1-short="$(git rev-parse --short HEAD)" >> $GITHUB_OUTPUT
 
   build-packages-windows:
