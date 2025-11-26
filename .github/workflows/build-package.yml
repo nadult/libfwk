@@ -49,7 +49,9 @@ jobs:
         architecture: 'x64'
         cache: 'pip'
     - name: Install Python dependencies
-      run: pip install -r requirements.txt
+      run: |
+        pip install -r requirements.txt
+        conan profile detect
 
     - name: Build dependency package
       run: |
