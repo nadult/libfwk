@@ -8,91 +8,102 @@ FWK is a sweet (IMVHO) abbreviation for framework. It is basically a set of clas
 and functions which I use in most of my projects (mostly game-related). It's trying
 to be light, super easy to use and performant where it matters.
 
+
 ### Features
 
 - Vulkan & SDL3 based
-- Easy to use interfaces (trying to be as intuitive as possible)
-- Doesn't use C++ exceptions
-- Supported platforms: Ubuntu 22.04, Windows (requires VS 2022 with LLVM toolset)
-
-TODO: more details
+- Light-weight and easy to use
+- Doesn't use C++ exceptions (has a custom expected<>-based error handling system instead)
+- Supported platforms: Ubuntu 22.04+, Windows (requires VS 2022 with LLVM toolset)
 
 
 ## Examples & projects based on libfwk
 
-* Some examples are available in src/test/ and src/tools.
+* Some examples are available in [src/tests/](https://github.com/nadult/libfwk/tree/main/src/tests)
+  and in [src/tools](https://github.com/nadult/libfwk/tree/main/src/tools).
 * FreeFT [https://github.com/nadult/freeft](https://github.com/nadult/freeft)
 * LucidRaster [https://github.com/nadult/lucid](https://github.com/nadult/lucid)
 
 ## Building
 
-libfwk is written in C++20, so it requires a fairly new C++ compiler, preferably Clang.
-libfwk can be easily compiled in Ubuntu 22.04 and under Windows (github actions are provided).
+libfwk can be easily built on Ubuntu and Windows. It leverages CMake for project configuration and
+building and it has it's own simple system for managing dependencies similar to PIP or NPM.
+This system consists of a single-file python script
+([tools/configure.py](https://github.com/nadult/libfwk/blob/main/tools/configure.py)),
+which can, based on provided
+[dependencies.json](https://github.com/nadult/libfwk/blob/main/dependencies.json)
+file build or download pre-built packages of all the required packages. This script can also
+be used to simplify project configuration on Windows when building with Visual Studio 2022+ or ninja
+paired with clang-cl or MSVC.
 
-### Windows
+libfwk requires a fairly new compiler which supports C++ 20 and statement expressions. That's why,
+on Windows, libfwk-based projects should be compiled with clang-cl, and not with MSVC. Clang-cl is
+available in Visual Studio's LLVM toolset.
 
-libfwk requires Visual Studio 2022 with LLVM toolset. [tools/install\_deps.py](https://github.com/nadult/libfwk/blob/main/tools/install_deps.py) will download all the necessary dependencies into a specified folder. libfwk project files expect this folder to be 'C:/libraries/x86_64'. You can change that in [windows/shared\_libraries.props](https://github.com/nadult/libfwk/blob/main/windows/shared_libraries.props). To build it, simply open [windows/libfwk.sln](https://github.com/nadult/libfwk/blob/main/windows/libfwk.sln)
-in Visual Studio and run build.
+Assuming that you have installed CMake, Python and a proper compiler, you should be able to build
+libfwk or libfwk-based project by running the following commands:
 
-### Ubuntu
+```
+python [path-to-libfwk]/tools/configure.py download-deps
+python [path-to-libfwk]/tools/configure.py
+cmake --build build --parallel
+```
 
-Several external dependencies have to be installed, before building libfwk. 'Install dependencies' step in test-linux job ([.github/workflows/test.yml](https://github.com/nadult/libfwk/blob/main/.github/workflows/test.yml#L55)) is a good reference of how to install them.  
-To compile simply run make. There is a basic description of the options that you can pass to make at the beginning of Makefile & Makefile-shared.
+`download-deps` command will download all the required dependencies in dependencies/ subdirectory.
+Those files will be downloaded from github-based package caches, specified in dependencies.json.
+If you don't want to use those precompiled packages, then you can instead build those packages
+locally with `build-deps` command. It will additionally require installing conan.
 
-Examples:
-
-    $ make MODE=release-paranoid COMPILER=clang++-17 STATS=true -j12
-    $ make MODE=release-paranoid print-stats print-variables
-    $ make MODE=debug-nans clean
-    $ make clean-all
 
 ### Dependencies
 
-#### External dependencies
-
-* **SDL3**  
-	[https://www.libsdl.org/](https://www.libsdl.org/)
-	
-* **Vulkan SDK**  
-	[https://www.lunarg.com/vulkan-sdk/](https://www.lunarg.com/vulkan-sdk/)  
-	Only shaderc, vulkan headers & loader is actually used  
-
-* **zlib**
-
-* **freetype2** (used under the "FreeType License")  
+* **freetype2**
+	Used under the "FreeType License".  
 	[http://www.freetype.org/](http://www.freetype.org/)
 
-* **libogg, libvorbis**  
+* **STB\_image && STB\_dxt && STB\_image\_resize**
+    Included in extern/stb_*.h files, used under MIT license.  
+    [https://github.com/nothings/stb](https://github.com/nothings/stb)
+
+* **rapidxml**  
+	Included in extern/rapidxml/, used under BSL 1.0.  
+	[http://rapidxml.sourceforge.net/](http://rapidxml.sourceforge.net/)
+
+* **boost::polygon::voronoi**   
+    Included in extern/boost_polygon/, used under BSL 1.0.  
+	[http://www.boost.org/](http://www.boost.org/)
+
+* **Volk**   
+    Included in extern/volk/, used under MIT license.  
+	[https://github.com/zeux/volk](https://github.com/zeux/volk)
+
+* **SDL3**
+    Used under ZLIB license.  
+	[https://www.libsdl.org/](https://www.libsdl.org/)	
+
+* **Vulkan headers**  
+    Used under MIT license.  
+	[https://github.com/KhronosGroup/Vulkan-Headers](https://github.com/KhronosGroup/Vulkan-Headers)
+
+* **shaderc**  
+    Used under Apache license.  
+	[https://github.com/google/shaderc](https://github.com/google/shaderc)
+
+* **zlib**  
+
+* **libogg, libvorbis (optional)**  
 	[https://xiph.org/ogg/](https://xiph.org/ogg/)  
 	[https://xiph.org/vorbis/](https://xiph.org/vorbis/)
 
-* **OpenAL**  
-	[https://www.openal.org/](https://www.openal.org/)
+* **OpenAL Soft (optional)**  
+	[https://github.com/kcat/openal-soft](https://github.com/kcat/openal-soft)
 
 * **dear imgui (optional)**  
-	Included as a git submodule in extern/imgui/.  
+	Included as a git submodule in extern/imgui/, used under MIT license.  
 	Menu module & perf::Analyzer will only be compiled if imgui is present.  
 	[https://github.com/ocornut/imgui](https://github.com/ocornut/imgui)
 
 * **libdwarf (optional, linux-only)**
-
-#### Included dependencies
-
-* **STB\_image && STB\_dxt && STB\_image\_resize**  
-    [https://github.com/nothings/stb](https://github.com/nothings/stb)
-
-* **rapidxml**  
-	included in extern/rapidxml/, licensed under BSL 1.0.  
-	[http://rapidxml.sourceforge.net/](http://rapidxml.sourceforge.net/)
-
-* **boost::polygon::voronoi**   
-    included in extern/boost_polygon/, licensed under BSL 1.0.  
-	[http://www.boost.org/](http://www.boost.org/)
-
-* **Volk**   
-    included in extern/volk/, licensed under MIT license.  
-	[https://github.com/zeux/volk](https://github.com/zeux/volk)
-
 
 ## License
 
