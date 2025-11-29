@@ -1,5 +1,5 @@
 # libfwk
-[![License](https://img.shields.io/badge/License-Boost_1.0-lightblue.svg)](https://www.boost.org/LICENSE_1_0.txt)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 [![Build status](https://github.com/nadult/libfwk/actions/workflows/test.yml/badge.svg?branch=main)](https://github.com/nadult/libfwk/actions)
 
 ## WTF is libfwk?
@@ -61,7 +61,7 @@ locally with `build-deps` command. It will additionally require installing conan
 	Used under the "FreeType License".  
 	[http://www.freetype.org/](http://www.freetype.org/)
 
-* **STB\_image && STB\_dxt && STB\_image\_resize**
+* **STB\_image && STB\_dxt && STB\_image\_resize**  
     Included in extern/stb_*.h files, used under MIT license.  
     [https://github.com/nothings/stb](https://github.com/nothings/stb)
 
@@ -90,6 +90,7 @@ locally with `build-deps` command. It will additionally require installing conan
 	[https://github.com/google/shaderc](https://github.com/google/shaderc)
 
 * **zlib**  
+    Used under ZLIB license.  
 
 * **libogg, libvorbis (optional)**  
 	[https://xiph.org/ogg/](https://xiph.org/ogg/)  
@@ -107,7 +108,7 @@ locally with `build-deps` command. It will additionally require installing conan
 
 ## License
 
-Whole library is licensed under [Boost Software license](https://github.com/nadult/libfwk/blob/main/license.txt).
+Whole library is licensed under [MIT license](https://github.com/nadult/libfwk/blob/main/license.txt).
 
 If You found this library useful, please contact the author (nadult (at) fastmail (dot) fm).  
 Any kind of feedback is greatly appreciated.
