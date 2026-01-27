@@ -395,10 +395,14 @@ void VulkanCommandQueue::beginRenderPass(PVFramebuffer framebuffer, PVRenderPass
 	PASSERT(m_status == Status::frame_running);
 	VkRenderPassBeginInfo bi{VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO};
 	bi.renderPass = render_pass;
-	if(render_area)
+	if(render_area) {
+		DASSERT(IRect(framebuffer->size()).contains(*render_area));
+		render_area = render_area->intersection(IRect(framebuffer->size()));
 		bi.renderArea = toVkRect(*render_area);
-	else
+	} else {
 		bi.renderArea.extent = toVkExtent(framebuffer->size());
+	}
+
 	bi.clearValueCount = clear_values.size();
 	bi.pClearValues = reinterpret_cast<const VkClearValue *>(clear_values.data());
 	bi.framebuffer = framebuffer;
