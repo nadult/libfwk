@@ -1077,7 +1077,7 @@ def download_package(deps: DependenciesJson, package_name: str, deps_dir: str):
         print(f"Don't know how to download package: {package_name}")
         exit(1)
 
-    (version, url, hash) = cached_package
+    version, url, hash = cached_package
     print(f"Downloading package: {stylize_text(package_name, Color.DEFAULT, Style.BOLD)}")
     print(f"  Version: {version}")
 
