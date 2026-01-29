@@ -157,7 +157,8 @@ namespace {
 		string simple;
 	};
 
-	vector<string> analyzeAddresses(vector<void *> addresses, const FilePath &current) {
+	[[maybe_unused]] vector<string> analyzeAddresses(vector<void *> addresses,
+													 const FilePath &current) {
 		auto cmd_result = execCommand(analyzeCommand(addresses, current));
 		if(!cmd_result || cmd_result->second != 0)
 			return {};

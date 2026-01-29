@@ -18,10 +18,8 @@
 namespace fwk {
 #ifdef FWK_PLATFORM_WINDOWS
 string wideToUtf8(CSpan<wchar_t> text) {
-	// TODO: make sure that it's properly 0-terminated
 	PodVector<char> buffer(text.size() * 3);
-	auto size = WideCharToMultiByte(CP_UTF8, 0, text.data(), text.size(), buffer.data(),
-									buffer.size(), 0, 0);
+	WideCharToMultiByte(CP_UTF8, 0, text.data(), text.size(), buffer.data(), buffer.size(), 0, 0);
 	return string(buffer.data());
 }
 #endif

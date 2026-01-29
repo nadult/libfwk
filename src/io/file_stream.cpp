@@ -45,7 +45,7 @@ void BaseFileStream::loadData(Span<char> data) {
 	}
 
 	if(fread(data.data(), data.size(), 1, (FILE *)m_file) != 1) {
-		reportError(format("fread failed: %", strerror(errno)));
+		reportError(format("fread failed: %", strError(errno)));
 		fill(data, 0);
 		return;
 	}
@@ -59,7 +59,7 @@ void BaseFileStream::saveData(CSpan<char> data) {
 		return;
 
 	if(fwrite(data.data(), data.size(), 1, (FILE *)m_file) != 1) {
-		reportError(format("fwrite failed: %", strerror(errno)));
+		reportError(format("fwrite failed: %", strError(errno)));
 		return;
 	}
 
@@ -74,7 +74,7 @@ void BaseFileStream::seek(long long pos) {
 		return;
 
 	if(fseek((FILE *)m_file, pos, SEEK_SET) != 0) {
-		reportError(format("fseek failed: %", strerror(errno)));
+		reportError(format("fseek failed: %", strError(errno)));
 		return;
 	}
 
@@ -82,9 +82,16 @@ void BaseFileStream::seek(long long pos) {
 }
 
 Ex<FileStream> fileStream(ZStr file_name, bool is_loading) {
-	auto *file = fopen(file_name.c_str(), is_loading ? "rb" : "wb");
+	FILE *file = nullptr;
+#ifdef FWK_PLATFORM_WINDOWS
+	auto err = fopen_s(&file, file_name.c_str(), is_loading ? "rb" : "wb");
+#else
+	file = fopen(file_name.c_str(), is_loading ? "rb" : "wb");
+	int err = file ? 0 : errno;
+#endif
+
 	if(!file)
-		return FWK_ERROR("Error while opening file \"%\"", file_name);
+		return FWK_ERROR("Error while opening file \"%\": % (%)", file_name, strError(err), err);
 
 	fseek(file, 0, SEEK_END);
 	auto size = ftell(file);

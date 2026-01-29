@@ -490,7 +490,6 @@ template <class T> auto GeomGraph<T>::mergeNearby(double join_dist) const -> Mer
 	};
 
 	auto join_dist_sq = join_dist * join_dist;
-	auto cell_size = join_dist;
 
 	// Mapping from cell to vertex list
 	HashMap<int2, List> cell_verts;

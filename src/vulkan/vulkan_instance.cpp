@@ -108,7 +108,7 @@ vector<string> vulkanSurfaceExtensions() {
 #ifdef FWK_PLATFORM_WINDOWS
 	out.emplace_back("VK_KHR_win32_surface");
 #elif defined(FWK_PLATFORM_LINUX)
-	if(std::getenv("WAYLAND_DISPLAY"))
+	if(getEnv("WAYLAND_DISPLAY"))
 		out.emplace_back("VK_KHR_wayland_surface");
 	else
 		out.emplace_back("VK_KHR_xlib_surface");

@@ -212,7 +212,7 @@ void VulkanCommandQueue::beginFrame() {
 	}
 	swap_frame.perf_frame_id = perf_tc ? perf_tc->frameId() : -1;
 
-	auto first_query = timestampQuery();
+	[[maybe_unused]] auto first_query = timestampQuery();
 	PASSERT(first_query == 0);
 }
 

@@ -36,7 +36,7 @@ EdgeId Voronoi::arcId(EdgeId id) const {
 }
 
 CellId Voronoi::cellId(EdgeId id) const {
-	auto layer = graph.layer(id);
+	[[maybe_unused]] auto layer = graph.layer(id);
 	PASSERT(isOneOf(layer, arc_layer, seg_layer));
 	return CellId(graph[id].ival2);
 }

@@ -15,9 +15,6 @@
 #endif
 
 #ifdef FWK_PLATFORM_MSVC
-#define S_IFMT 0xF000
-#define S_IFREG 0x8000
-#define S_IFDIR 0x4000
 #define S_ISREG(m) (((m) & S_IFMT) == S_IFREG)
 #define S_ISDIR(m) (((m) & S_IFMT) == S_IFDIR)
 #endif
@@ -79,23 +76,23 @@ Ex<FilePath> FilePath::current() {
 	char buffer[512];
 	char *name = getcwd(buffer, sizeof(buffer) - 1);
 	if(!name)
-		return FWK_ERROR("Error in getcwd: %", strerror(errno));
+		return FWK_ERROR("Error in getcwd: %", strError(errno));
 	return FilePath(name);
 #endif
 }
 
 Ex<FilePath> FilePath::home() {
 #ifdef FWK_PLATFORM_WINDOWS
-	Str part1 = getenv("HOMEDRIVE");
-	Str part2 = getenv("HOMEPATH");
+	auto part1 = getEnv("HOMEDRIVE");
+	auto part2 = getEnv("HOMEPATH");
 	if(!part1 || !part2)
 		return FWK_ERROR("Error while reading 'HOMEDRIVE', 'HOMEPATH' environment variables");
-	return FilePath(format("%%", part1, part2));
+	return FilePath(format("%%", *part1, *part2));
 #else
-	Str path = getenv("HOME");
+	auto path = getEnv("HOME");
 	if(!path)
 		return FWK_ERROR("Error while reading 'HOME' environment variable");
-	return FilePath(path);
+	return FilePath(*path);
 #endif
 }
 
@@ -106,7 +103,7 @@ Ex<void> FilePath::setCurrent(const FilePath &path) {
 	return {};
 #else
 	if(chdir(path.c_str()) != 0)
-		return FWK_ERROR("Error in chdir: %", strerror(errno));
+		return FWK_ERROR("Error in chdir: %", strError(errno));
 	return {};
 #endif
 }
@@ -386,12 +383,12 @@ Ex<double> lastModificationTime(const FilePath &file_name) {
 #ifdef _WIN32
 	struct _stat64 attribs;
 	if(_stat64(file_name.c_str(), &attribs) != 0)
-		return FWK_ERROR("stat failed for file %s: %s\n", file_name.c_str(), strerror(errno));
+		return FWK_ERROR("stat failed for file %s: %s\n", file_name.c_str(), strError(errno));
 	return double(attribs.st_mtime);
 #else
 	struct stat attribs;
 	if(stat(file_name.c_str(), &attribs) != 0)
-		return FWK_ERROR("stat failed for file %s: %s\n", file_name.c_str(), strerror(errno));
+		return FWK_ERROR("stat failed for file %s: %s\n", file_name.c_str(), strError(errno));
 	return double(attribs.st_mtim.tv_sec) + double(attribs.st_mtim.tv_nsec) * 0.000000001;
 #endif
 }
@@ -413,14 +410,15 @@ Ex<> mkdirRecursive(const FilePath &path) {
 
 	if(ret != 0)
 		return FWK_ERROR("Cannot create directory: \"%s\" error: %s\n", path.c_str(),
-						 strerror(errno));
+						 strError(errno).c_str());
 	return {};
 }
 
 Ex<> removeFile(const FilePath &path) {
 	auto ret = std::remove(path.c_str());
 	if(ret != 0)
-		return FWK_ERROR("Cannot remove file: \"%s\" error: %s\n", path.c_str(), strerror(errno));
+		return FWK_ERROR("Cannot remove file: \"%s\" error: %s\n", path.c_str(),
+						 strError(errno).c_str());
 	return {};
 }
 
@@ -428,7 +426,7 @@ Ex<> renameFile(const FilePath &src, const FilePath &dst) {
 	auto ret = std::rename(src.c_str(), dst.c_str());
 	if(ret != 0)
 		return FWK_ERROR("Cannot rename/move file: \"%s\" to: \"%s\" error: %s\n", src.c_str(),
-						 dst.c_str(), strerror(errno));
+						 dst.c_str(), strError(errno).c_str());
 	return {};
 }
 
@@ -584,7 +582,7 @@ Ex<Pair<string, int>> execCommand(const string &cmd) {
 	FILE *pipe = popen(cmd.c_str(), "r");
 #endif
 	if(!pipe)
-		return FWK_ERROR("Error on popen '%': %", cmd, strerror(errno));
+		return FWK_ERROR("Error on popen '%': %", cmd, strError(errno));
 	char buffer[1024];
 	std::string result = "";
 	while(!feof(pipe)) {
@@ -598,7 +596,7 @@ Ex<Pair<string, int>> execCommand(const string &cmd) {
 #endif
 
 	if(ret == -1)
-		return FWK_ERROR("Error on pclose '%': %", cmd, strerror(errno));
+		return FWK_ERROR("Error on pclose '%': %", cmd, strError(errno));
 	return pair{result, ret};
 #endif
 }

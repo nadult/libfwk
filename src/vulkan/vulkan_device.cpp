@@ -134,7 +134,7 @@ struct VulkanDevice::DummyObjects {
 // ---  Construction / destruction & main functions  -----------------------------------------
 
 VulkanDevice::VulkanDevice(VDeviceId id, VPhysicalDeviceId phys_id, VInstanceRef instance_ref)
-	: m_phys_id(phys_id), m_instance_ref(instance_ref), m_id(id) {
+	: m_instance_ref(instance_ref), m_phys_id(phys_id), m_id(id) {
 	m_objects.emplace();
 	m_dummies.emplace();
 	ASSERT(m_instance_ref->valid(m_phys_id));

@@ -15,7 +15,6 @@ SquareBorder::SquareBorder(IRect rect, int2 center, int radius) {
 					   center + int2(+radius, +radius), center + int2(-radius, +radius)};
 
 	for(int dir = 0; dir < 4; dir++) {
-		int sign = dir & 2 ? -1 : 1;
 		auto from = corners[dir], to = corners[(dir + 1) % 4];
 
 		steps[dir] = 0;

@@ -42,7 +42,6 @@ Ex<FontCore> FontCore::load(CXmlNode font_node) {
 	out.m_face_name = info_node("face");
 	out.m_texture_size = int2(common_node("scaleW"), common_node("scaleH"));
 	out.m_line_height = common_node("lineHeight");
-	int text_base = common_node("base");
 
 	int page_count = common_node("pages");
 	EXPECT(page_count == 1);

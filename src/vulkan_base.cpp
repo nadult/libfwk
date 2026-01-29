@@ -12,14 +12,14 @@ VSamplerSetup::VSamplerSetup(VTexFilter mag_filter, VTexFilter min_filter,
 							 Maybe<VTexFilter> mip_filter, VTexAddress address_mode,
 							 uint max_anisotropy_samples)
 	: mag_filter(mag_filter), min_filter(min_filter), mipmap_filter(mip_filter),
-	  address_mode{address_mode, address_mode, address_mode},
-	  max_anisotropy_samples(max_anisotropy_samples) {}
+	  max_anisotropy_samples(max_anisotropy_samples),
+	  address_mode{address_mode, address_mode, address_mode} {}
 
 VSamplerSetup::VSamplerSetup(VTexFilter mag_filter, VTexFilter min_filter,
 							 Maybe<VTexFilter> mip_filter, array<VTexAddress, 3> address_mode,
 							 uint max_anisotropy_samples)
 	: mag_filter(mag_filter), min_filter(min_filter), mipmap_filter(mip_filter),
-	  address_mode(address_mode), max_anisotropy_samples(max_anisotropy_samples) {}
+	  max_anisotropy_samples(max_anisotropy_samples), address_mode(address_mode) {}
 
 VSamplerSetup::VSamplerSetup(VCompareOp compare_op) : compare_op(compare_op) {}
 

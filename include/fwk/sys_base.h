@@ -329,6 +329,9 @@ template <class T> concept c_flat_data = is_flat_data<T>;
 void log(Str message, Str unique_key);
 void log(Str message);
 bool logKeyPresent(Str);
+
+string strError(int error_num);
+Maybe<string> getEnv(ZStr var_name);
 }
 
 namespace perf {
