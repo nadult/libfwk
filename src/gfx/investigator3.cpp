@@ -96,7 +96,7 @@ void Investigator3::handleInput(vector<InputEvent> events, float time_diff) {
 	bool refocus = false;
 	auto exit_key = m_opts & InvestigatorOpt::exit_with_space ? InputKey::space : InputKey::esc;
 	for(const auto &event : events) {
-		bool shift = event.pressed(InputModifier::lshift);
+		[[maybe_unused]] bool shift = event.pressed(InputModifier::lshift);
 
 		if(event.keyPressed('c'))
 			refocus = true;
@@ -144,7 +144,6 @@ bool Investigator3::mainLoop() {
 
 	m_device->beginFrame().check();
 	auto screen = swap_chain->acquiredImage();
-	auto depth_format = m_depth_buffer->image()->format().get<VDepthStencilFormat>();
 	auto render_pass_3d = m_device->getRenderPass({screen, m_depth_buffer}, VSimpleSync::clear);
 	auto render_pass_2d = m_device->getRenderPass({screen}, VSimpleSync::present);
 	auto &cmds = m_device->cmdQueue();

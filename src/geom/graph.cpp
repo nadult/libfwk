@@ -28,7 +28,7 @@ Graph::Graph(CSpan<Pair<VertexId>> edges, Maybe<int> num_verts) {
 		num_verts = vmax + 1;
 	}
 	m_verts.reserve(*num_verts);
-	for(int n : intRange(*num_verts))
+	for(int _ : intRange(*num_verts))
 		addVertex();
 	m_edges.reserve(edges.size());
 	for(auto [v1, v2] : edges)

@@ -161,7 +161,8 @@ void TextFormatter::stdFormat(const char *format, ...) {
 		va_end(ap);
 
 		if(ret < 0)
-			FWK_FATAL("Error in vsnprintf(\"%s\"): errno: %s(%d)", format, strerror(errno), errno);
+			FWK_FATAL("Error in vsnprintf(\"%s\"): errno: %s(%d)", format, strError(errno).c_str(),
+					  errno);
 
 		int new_offset = m_offset + ret;
 		if(new_offset + 1 <= m_data.size()) {

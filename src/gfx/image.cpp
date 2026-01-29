@@ -98,7 +98,6 @@ Image::RegisterLoader::RegisterLoader(const char *ext, Loader func) {
 
 Image Image::compressBC(const Image &image, VColorFormat format) {
 	auto base_format = baseFormat(format);
-	auto numeric_format = numericFormat(format);
 
 	DASSERT(isOneOf(base_format, VBaseFormat::bc1_rgb, VBaseFormat::bc3_rgba));
 	DASSERT(baseFormat(image.format()) == VBaseFormat::rgba8);

@@ -71,7 +71,7 @@ void Investigator2::handleInput(float time_diff) {
 	auto events = m_window->inputEvents();
 	auto exit_key = m_opts & InvestigatorOpt::exit_with_space ? InputKey::space : InputKey::esc;
 	for(const auto &event : events) {
-		bool shift = event.pressed(InputModifier::lshift);
+		[[maybe_unused]] bool shift = event.pressed(InputModifier::lshift);
 
 		if(event.keyPressed(InputKey::left))
 			view_move.x -= time_diff * 2.0;
@@ -127,7 +127,7 @@ void Investigator2::applyFocus() {
 	m_focus_applied = true;
 }
 
-static IColor negativeColor(IColor color) {
+[[maybe_unused]] static IColor negativeColor(IColor color) {
 	auto rgb = FColor(color).rgb();
 	auto col1 = lerp(rgb, float3(0.0f), 0.8f), col2 = lerp(rgb, float3(1.0f), 0.8f);
 	return (IColor)FColor(distanceSq(col1, rgb) > distanceSq(col2, rgb) ? col1 : col2);

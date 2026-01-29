@@ -17,7 +17,7 @@
 
 namespace fwk {
 
-static int findClosestChunk(u32 size) {
+[[maybe_unused]] static int findClosestChunk(u32 size) {
 	int level0 = (31 - countLeadingZeros((size - 1) >> 8));
 	u32 value0 = 256u << level0;
 	u32 value = value0 + (value0 >> 1);

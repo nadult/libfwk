@@ -209,8 +209,6 @@ Ex<CompilationResult> ShaderCompiler::compileCode(VShaderStage stage, ZStr code,
 	auto result = shaderc_compile_into_spv(m_impl->compiler, code.c_str(), code.size(),
 										   type_map[stage], file_name.c_str(), "main", options);
 
-	int num_warnings = shaderc_result_get_num_warnings(result);
-	int num_errors = shaderc_result_get_num_errors(result);
 	auto status = shaderc_result_get_compilation_status(result);
 
 	if(status == shaderc_compilation_status_success) {

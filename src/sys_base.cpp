@@ -224,5 +224,32 @@ double getTime() {
 #endif
 }
 
+Maybe<string> getEnv(ZStr var_name) {
+#ifdef FWK_PLATFORM_WINDOWS
+	size_t length = 0;
+	if(getenv_s(&length, nullptr, 0, var_name.c_str()) != 0)
+		return none;
+
+	string result(length, '\0');
+	if(getenv_s(&length, result.data(), length, var_name.c_str()) != 0)
+		return none;
+	result.resize(length);
+	return result;
+#else
+	const char *value = std::getenv(var_name.c_str());
+	return value ? Maybe<string>(value) : none;
+#endif
+}
+
+string strError(int error_num) {
+#ifdef FWK_PLATFORM_WINDOWS
+	char buffer[1024];
+	strerror_s(buffer, sizeof(buffer), error_num);
+	return buffer;
+#else
+	return string(strerror(error_num));
+#endif
+}
+
 void logError(const string &error) { fprintf(stderr, "%s", error.c_str()); }
 }

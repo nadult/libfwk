@@ -194,7 +194,6 @@ ShaderDebugResults::ShaderDebugResults(string title, CSpan<u32> buffer_data, May
 	records.reserve(num_records);
 
 	for(uint i = 0; i < num_records; i++) {
-		const u32 *cur = &values[i * 6];
 		uint lix = values[i * 6 + 0] & 0xffff, line = values[i * 6 + 0] >> 16;
 		uint gix = values[i * 6 + 1] & 0xffffff, types = values[i * 6 + 1] >> 24;
 

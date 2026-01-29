@@ -25,7 +25,7 @@
 namespace fwk {
 
 Canvas2D::Canvas2D(const IRect &viewport, Orient2D orient)
-	: m_matrix_stack(projectionMatrix2D(viewport, orient)), m_viewport(viewport) {
+	: m_viewport(viewport), m_matrix_stack(projectionMatrix2D(viewport, orient)) {
 	m_groups.emplace_back(0, getPipeline({}), -1);
 	m_group_matrices.emplace_back(m_matrix_stack.fullMatrix());
 }
@@ -214,11 +214,11 @@ void Canvas2D::appendColors(CSpan<IColor> colors, int num_vertices, int multipli
 		int offset = old_size;
 		if(m_cur_color == FColor(float4(1.0))) {
 			for(int i : intRange(colors))
-				for(int j : intRange(multiplier))
+				for(int _ : intRange(multiplier))
 					m_colors[offset++] = colors[i];
 		} else {
 			for(int i : intRange(colors))
-				for(int j : intRange(multiplier))
+				for(int _ : intRange(multiplier))
 					m_colors[offset++] = IColor(FColor(colors[i]) * m_cur_color);
 		}
 	} else {
@@ -403,7 +403,7 @@ void Canvas2D::addEllipse(float2 center, float2 size, FColor color, int num_edge
 	PASSERT(num_edges >= 3);
 
 	auto ang_mul = pi * 2.0f / float(num_edges);
-	uint idx = m_positions.size();
+	[[maybe_unused]] uint idx = m_positions.size();
 	vector<float2> points;
 	points.reserve(num_edges);
 

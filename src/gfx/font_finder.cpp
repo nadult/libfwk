@@ -22,7 +22,7 @@ string wideToUtf8(CSpan<wchar_t> text) {
 	PodVector<char> buffer(text.size() * 3);
 	auto size = WideCharToMultiByte(CP_UTF8, 0, text.data(), text.size(), buffer.data(),
 									buffer.size(), 0, 0);
-	return string(buffer.data());
+	return string(buffer.data(), size);
 }
 #endif
 

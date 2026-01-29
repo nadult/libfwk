@@ -198,7 +198,7 @@ Gui::Gui(VDeviceRef device, VWindowRef window, PVRenderPass rpass, GuiConfig opt
 	}
 }
 
-Gui::Gui(Gui &&rhs) : m_last_time(rhs.m_last_time), m_impl(std::move(rhs.m_impl)) {
+Gui::Gui(Gui &&rhs) : m_impl(std::move(rhs.m_impl)), m_last_time(rhs.m_last_time) {
 	s_instance = this;
 }
 

@@ -194,7 +194,7 @@ IRect VulkanWindow::rect() const {
 
 #ifdef FWK_PLATFORM_WINDOWS
 Pair<int2> windowNonClientBorders(HWND hwnd) {
-	RECT non_client = {0, 0, 0, 0}, window = {0, 0, 0, 0}, client = {0, 0, 0, 0};
+	RECT window = {0, 0, 0, 0}, client = {0, 0, 0, 0};
 	POINT client_to_screen = {0, 0};
 
 	if(GetWindowRect(hwnd, &window) && GetClientRect(hwnd, &client) &&

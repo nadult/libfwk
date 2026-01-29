@@ -125,7 +125,6 @@ void AlDevice::tick() {
 	}
 
 	double time = getTime();
-	double time_delta = time - m_impl->last_time;
 	m_impl->last_time = time;
 }
 

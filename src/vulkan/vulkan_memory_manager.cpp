@@ -113,8 +113,8 @@ void VulkanMemoryManager::flushMappedRanges() {
 	if(m_flush_ranges) {
 		// TODO: make sure that all ranges are actually mapped
 		// If not, then they should be flushed before unmapping
-		auto result = vkFlushMappedMemoryRanges(m_device_handle, m_flush_ranges.size(),
-												m_flush_ranges.data());
+		[[maybe_unused]] auto result = vkFlushMappedMemoryRanges(
+			m_device_handle, m_flush_ranges.size(), m_flush_ranges.data());
 		// TODO: handle result
 		m_flush_ranges.clear();
 	};
@@ -181,7 +181,6 @@ auto VulkanMemoryManager::frameAlloc(u32 size, uint alignment) -> Ex<VMemoryBloc
 
 	u32 aligned_offset = alignOffset(frame.offset, alignment_mask);
 	if(aligned_offset + size > frame.memory.size) {
-		auto type_index = m_domains[m_frame_allocator_domain].type_index;
 		u32 min_size = aligned_offset + size;
 		u32 new_size = max<u32>(frame.memory.size * 2, m_frame_allocator_base_size, min_size);
 		new_size = min<u32>(new_size, max_allocation_size);

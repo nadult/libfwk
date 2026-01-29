@@ -139,7 +139,7 @@ string Analyzer::dump(const Frame &frame) const {
 	u64 last_time = 0;
 
 	for(auto &sample : frame.samples) {
-		for(int i : intRange(indent))
+		for(int _ : intRange(indent))
 			fmt("  ");
 		auto &exec = m_exec_tree[sample.id()];
 		auto *point = pointInfo(exec.point_id);
@@ -229,7 +229,7 @@ void Analyzer::sortRows(Span<ExecId> ids, CSpan<Row> rows) const {
 
 void Analyzer::computeExecList(ExecId exec_id, FrameRange &range) const {
 	auto &exec = m_exec_tree[exec_id];
-	auto &row = range.rows[exec_id];
+	[[maybe_unused]] auto &row = range.rows[exec_id];
 
 	if(exec.type == ExecNodeType::gpu_time || (!m_show_empty && range.empty[exec_id]))
 		return;
