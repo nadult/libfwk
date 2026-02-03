@@ -119,6 +119,8 @@ Ex<void> VulkanWindow::initialize(ZStr title, IRect rect, VWindowFlags flags) {
 								 &m_impl->surface_handle))
 		return FWK_ERROR("SDL_Vulkan_CreateSurface failed: %", SDL_GetError());
 
+	SDL_StartTextInput(m_impl->window);
+
 	return {};
 }
 
