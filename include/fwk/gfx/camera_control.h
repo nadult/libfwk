@@ -64,7 +64,7 @@ class CameraControl {
 	void drag(float2 mouse_before, float2 mouse_after);
 
   private:
-	float3 grabPoint(float3 drag_point, float2 screen_pos) const;
+	Maybe<float3> grabPoint(float3 drag_point, float2 screen_pos) const;
 
 	struct Impl;
 	Dynamic<Impl> m_impl;
