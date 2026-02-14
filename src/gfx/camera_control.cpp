@@ -251,11 +251,11 @@ void CameraControl::drag(float2 mouse_before, float2 mouse_after) {
 		DASSERT(start_cam);
 		float3 drag_start = start_cam->pos;
 		Maybe<float3> target = grabPoint(drag_start, mouse_before);
-		Maybe<float3> cur_hit = grabPoint(drag_start, mouse_after);
+		Maybe<float3> current = grabPoint(drag_start, mouse_after);
 
-		if(!target || !cur_hit)
+		if(!target || !current)
 			return;
-		float3 delta = *target - *cur_hit;
+		float3 delta = *target - *current;
 
 		float move_speed = length(delta.xz()) / length(mouse_after - mouse_before);
 		float max_move_speed = 4.0f;
