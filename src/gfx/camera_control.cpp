@@ -7,7 +7,6 @@
 #include "fwk/gfx/camera.h"
 #include "fwk/gfx/camera_variant.h"
 #include "fwk/math/matrix4.h"
-#include "fwk/math/random.h"
 #include "fwk/math/ray.h"
 #include "fwk/math/segment.h"
 #include "fwk/maybe_ref.h"
@@ -217,7 +216,7 @@ Frustum CameraControl::screenFrustum(FRect rect) const {
 	return currentCamera().screenFrustum(rect);
 }
 
-float3 CameraControl::grabPoint(float3 drag_point, float2 screen_pos) const {
+Maybe<float3> CameraControl::grabPoint(float3 drag_point, float2 screen_pos) const {
 	Camera cam;
 	if(FppCamera *fpp_cam = m_impl->target)
 		cam =
@@ -229,8 +228,12 @@ float3 CameraControl::grabPoint(float3 drag_point, float2 screen_pos) const {
 	auto segment = cam.screenRay(screen_pos);
 	DASSERT(!segment.empty());
 	auto ray = *segment.asRay();
+	float angle_rad = std::abs(dot(ray.dir(), m_base_plane.normal()));
+	if(angle_rad < 0.01f)
+		return none;
+
 	auto isect = ray.isectParam(m_base_plane).closest();
-	DASSERT(isect < inf);
+	DASSERT(isFinite(isect) && isect >= 0.0f);
 	return ray.at(isect);
 }
 
@@ -247,30 +250,21 @@ void CameraControl::drag(float2 mouse_before, float2 mouse_after) {
 		FppCamera *start_cam = m_impl->drag_cam;
 		DASSERT(start_cam);
 		float3 drag_start = start_cam->pos;
-		float3 target = grabPoint(drag_start, mouse_before);
-		float3 cur_hit = grabPoint(drag_start, mouse_after);
+		Maybe<float3> target = grabPoint(drag_start, mouse_before);
+		Maybe<float3> current = grabPoint(drag_start, mouse_after);
 
-		float3 cur_pos = drag_start;
-		float cur_dist = distance(cur_hit, target);
+		if(!target || !current)
+			return;
+		float3 delta = *target - *current;
 
-		Random rand;
-		for(int n = 0; n < 500; n++) {
-			auto angle = rand.uniform(0.0f, pi * 2.0f);
-			float3 vec = asXZY(angleToVector(angle) * cur_dist * 2.0f / 3.0f, 0.0f);
-			float3 new_hit = grabPoint(cur_pos + vec, mouse_after);
-			float dist = distance(new_hit, target);
-			if(dist < cur_dist) {
-				cur_pos += vec;
-				cur_hit = new_hit;
-				cur_dist = dist;
-			}
+		float move_speed = length(delta.xz()) / length(mouse_after - mouse_before);
+		float max_move_speed = 4.0f;
+		if(isFinite(move_speed)) {
+			if(move_speed > max_move_speed)
+				delta = delta * (max_move_speed / move_speed);
+			float3 new_pos = drag_start + float3(delta.x, 0.0f, delta.z);
+			setTarget(FppCamera(new_pos, fpp_cam->forward_xz, fpp_cam->rot_vert));
 		}
-
-		float max_dist = 150.0f;
-		if(distance(cur_pos, drag_start) > max_dist)
-			cur_pos = drag_start + normalize(cur_pos - drag_start) * max_dist;
-
-		setTarget(FppCamera(cur_pos, fpp_cam->forward_xz, fpp_cam->rot_vert));
 	}
 }
 }
