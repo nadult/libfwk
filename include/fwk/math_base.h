@@ -484,12 +484,25 @@ template <class T0, class T1, class... TN>
 bool isNan(const T0 &value0, const T1 &value1, const TN &...values) {
 	return isNan(value0) || isNan(value1) || (... || isNan(values));
 }
+
 template <c_float_vec T> bool isNan(const T &v) {
 	return anyOf(v.values(), [](auto s) { return isNan(s); });
 }
 
 template <c_range T> bool isNan(const T &range) {
 	return anyOf(range, [](auto s) { return isNan(s); });
+}
+
+template <class T>
+	requires(is_fundamental<T>)
+bool isFinite(T value) {
+	if constexpr(is_fpt<T>)
+		return std::isfinite(value);
+	return true;
+}
+
+template <c_float_vec T> bool isFinite(const T &v) {
+	return anyOf(v.values(), [](auto s) { return isFinite(s); });
 }
 
 // -------------------------------------------------------------------------------------------

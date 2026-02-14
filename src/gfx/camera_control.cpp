@@ -104,6 +104,24 @@ static float linearControl(const InputEvent &event, int key1, int key2) {
 	return value;
 }
 
+// Solves a 2x2 linear system [col_x col_y] * x = rhs.
+static Maybe<float2> solveLinear2x2(float2 col_x, float2 col_y, float2 rhs) {
+	if(!isFinite(col_x) || !isFinite(col_y) || !isFinite(rhs))
+		return none;
+
+	float det = col_x.x * col_y.y - col_x.y * col_y.x;
+	if(std::abs(det) <= 1e-6f)
+		return none;
+
+	float inv_det = 1.0f / det;
+	float2 offset((rhs.x * col_y.y - rhs.y * col_y.x) * inv_det,
+				  (col_x.x * rhs.y - col_x.y * rhs.x) * inv_det);
+	if(!isFinite(offset))
+		return none;
+
+	return offset;
+}
+
 float CameraControl::moveSpeed() const {
 	return lerp(1.0f, o_config.shift_move_speed, m_fast_mul) * o_config.move_multiplier;
 }
@@ -111,8 +129,7 @@ float CameraControl::moveSpeed() const {
 vector<InputEvent> CameraControl::handleInput(vector<InputEvent> events, MaybeCRef<float3> cursor) {
 	float2 move, rot;
 	float zoom = 0.0f, mouse_zoom = 0.0f;
-
-	bool lshift = !events.empty() && events.front().pressed(InputModifier::lshift);
+	Maybe<float2> target_cursor_pos;
 
 	vector<InputEvent> out;
 	for(const auto &event : events) {
@@ -131,12 +148,19 @@ vector<InputEvent> CameraControl::handleInput(vector<InputEvent> events, MaybeCR
 			zoom += linearControl(event, InputKey::pageup, InputKey::pagedown);
 		} else if(event.isMouseOverEvent()) {
 			mouse_zoom -= event.mouseWheel() * 2.0f;
+			const auto &viewport = o_config.params.viewport;
+			if(!viewport.empty()) {
+				auto view_center = FRect(viewport).center();
+				auto view_size = float2(viewport.size());
+				target_cursor_pos = (float2(event.mousePos()) - view_center) * 2.0f / view_size;
+			}
 			out.emplace_back(event);
 		} else {
 			out.emplace_back(event);
 		}
 	}
 
+	bool lshift = !events.empty() && events.front().pressed(InputModifier::lshift);
 	m_fast_mode = lshift;
 
 	float move_speed = moveSpeed() * m_time_diff;
@@ -147,15 +171,24 @@ vector<InputEvent> CameraControl::handleInput(vector<InputEvent> events, MaybeCR
 	CameraVariant new_cam = m_impl->target;
 	new_cam.visit([&](auto &cam) { cam.move(move, rot, zoom); });
 
-	if(rot != float2() && new_cam.is<OrthoCamera>() && cursor) {
-		// Making sure that Ortho cam rotates around cursor
-		auto old_pos = mulPoint(camera(m_impl->target).matrix(), *cursor).xy();
-		auto new_pos = mulPoint(camera(new_cam).matrix(), *cursor).xy();
+	// Making sure that Ortho cam rotates around cursor
+	if(rot != float2() && cursor && target_cursor_pos && new_cam.is<OrthoCamera>()) {
+		auto &ortho_cam = *(OrthoCamera *)new_cam;
+		const auto target_cursor_screen_pos = *target_cursor_pos;
+		const auto cursor_screen_pos = mulPoint(camera(new_cam).matrix(), *cursor).xy();
 
-		OrthoCamera *ocam = new_cam;
-		auto offset = (new_pos - old_pos) * float2(o_config.params.viewport.size()) *
-					  float2(-0.5f, 0.5f) / ocam->zoom;
-		ocam->xy_offset += offset;
+		if(isFinite(cursor_screen_pos) && isFinite(ortho_cam.zoom) && ortho_cam.zoom > 0.0f) {
+			auto cursor_screen_pos_with_offset_x =
+				mulPoint(camera(ortho_cam.offsetCamera({1.0f, 0.0f})).matrix(), *cursor).xy();
+			auto cursor_screen_pos_with_offset_y =
+				mulPoint(camera(ortho_cam.offsetCamera({0.0f, 1.0f})).matrix(), *cursor).xy();
+
+			float2 screen_delta[2] = {cursor_screen_pos_with_offset_x - cursor_screen_pos,
+									  cursor_screen_pos_with_offset_y - cursor_screen_pos};
+			float2 screen_error = target_cursor_screen_pos - cursor_screen_pos;
+			if(auto offset = solveLinear2x2(screen_delta[0], screen_delta[1], screen_error))
+				ortho_cam.xy_offset += *offset;
+		}
 		m_impl->target = new_cam;
 
 	} else {

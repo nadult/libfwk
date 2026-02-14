@@ -211,7 +211,7 @@ Matrix4 perspective(float vert_fov_rad, float aspect_ratio, float z_near, float 
 	DASSERT(vert_fov_rad > 0.0f && vert_fov_rad < pi);
 	DASSERT(aspect_ratio > 0.0f);
 	DASSERT(z_near >= 0.0f && z_far > z_near);
-	DASSERT(std::isfinite(z_far));
+	DASSERT(isFinite(z_far));
 
 	float ctg = 1.0f / std::tan(0.5f * vert_fov_rad);
 	float z_diff = z_far - z_near;
