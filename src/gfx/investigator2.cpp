@@ -33,13 +33,9 @@ Investigator2::Investigator2(VDeviceRef device, VWindowRef window, VisFunc2 vis_
 		canvas.setSegmentWidth(pscale);
 		m_vis_func(canvas, double2());
 
-		auto is_finite = [](float2 pt) {
-			return allOf(pt.values(), [](float v) { return v >= -inf && v < inf; });
-		};
-
 		FRect sum;
 		for(auto pair : canvas.drawRects())
-			if(is_finite(pair.first.min()) && is_finite(pair.first.max()))
+			if(isFinite(pair.first.min()) && isFinite(pair.first.max()))
 				sum = encloseNotEmpty(sum, pair.first);
 
 		// In case we're focusing on a single point
