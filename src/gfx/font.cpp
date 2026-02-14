@@ -225,8 +225,7 @@ Ex<Font> Font::makeDefault(VulkanDevice &device, VWindowRef window, int font_siz
 	auto font_path = EX_PASS(findDefaultSystemFont()).file_path;
 	font_size *= window->dpiScale();
 	auto font_data = EX_PASS(FontFactory().makeFont(font_path, font_size));
-	auto font_image = EX_PASS(VulkanImage::createAndUpload(device, font_data.image));
-	auto font_image_view = VulkanImageView::create(font_image);
+	auto font_image_view = EX_PASS(VulkanImage::createAndUploadWithView(device, font_data.image));
 	return Font(std::move(font_data.core), std::move(font_image_view));
 }
 

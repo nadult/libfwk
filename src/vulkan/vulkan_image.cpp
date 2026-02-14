@@ -89,6 +89,13 @@ Ex<PVImage> VulkanImage::create(VulkanDevice &device, const VImageSetup &setup,
 	return device.createObject(handle, mem_block, setup);
 }
 
+Ex<PVImageView> VulkanImage::createWithView(VulkanDevice &device, const VImageSetup &setup,
+											VMemoryUsage mem_usage,
+											Maybe<VImageAspectFlags> aspect) {
+	auto image = EX_PASS(create(device, setup, mem_usage));
+	return VulkanImageView::create(std::move(image), aspect);
+}
+
 PVImage VulkanImage::createExternal(VulkanDevice &device, VkImage handle,
 									const VImageSetup &setup) {
 	auto out = device.createObject(handle, VMemoryBlock(), setup);
@@ -104,6 +111,12 @@ Ex<PVImage> VulkanImage::createAndUpload(VulkanDevice &device, CSpan<Image> imag
 	auto out = EX_PASS(create(device, setup));
 	EXPECT(out->upload(images));
 	return out;
+}
+
+Ex<PVImageView> VulkanImage::createAndUploadWithView(VulkanDevice &device, CSpan<Image> images,
+													 Maybe<VImageAspectFlags> aspect) {
+	auto image = EX_PASS(createAndUpload(device, images));
+	return VulkanImageView::create(std::move(image), aspect);
 }
 
 int3 VulkanImage::mipSize(int mip_level) const {
