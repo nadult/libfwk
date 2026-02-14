@@ -138,8 +138,7 @@ bool Investigator3::mainLoop() {
 	IRect viewport(m_window->size());
 	if(!m_depth_buffer || m_depth_buffer->size2D() != viewport.size()) {
 		auto format = m_device->bestSupportedFormat(VDepthStencilFormat::d24_x8);
-		auto buffer = VulkanImage::create(*m_device, VImageSetup(format, viewport.size())).get();
-		m_depth_buffer = VulkanImageView::create(buffer);
+		m_depth_buffer = VulkanImage::createWithView(*m_device, {format, viewport.size()}).get();
 	}
 
 	m_device->beginFrame().check();

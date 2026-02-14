@@ -129,13 +129,12 @@ HashMap<string, PVImageView> loadImages(VulkanDevice &device, CSpan<Pair<string>
 			image = Image(int2(4, 4), ColorId::magneta);
 		}
 
-		auto tex = VulkanImage::createAndUpload(device, {*image});
-		if(!tex) {
-			tex.error().print();
+		auto tex_view = VulkanImage::createAndUploadWithView(device, {*image});
+		if(!tex_view) {
+			tex_view.error().print();
 			continue;
 		}
-		auto tex_view = VulkanImageView::create(*tex);
-		out.emplace(tex_name, tex_view);
+		out.emplace(tex_name, *tex_view);
 	}
 	return out;
 }

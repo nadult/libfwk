@@ -46,8 +46,13 @@ class VulkanImage : public VulkanObjectBase<VulkanImage> {
 	static Ex<PVImage> create(VulkanDevice &, const VImageSetup &,
 							  VMemoryUsage = VMemoryUsage::device);
 	static PVImage createExternal(VulkanDevice &, VkImage, const VImageSetup &);
-
 	static Ex<PVImage> createAndUpload(VulkanDevice &, CSpan<Image>);
+
+	static Ex<PVImageView> createWithView(VulkanDevice &, const VImageSetup &,
+										  VMemoryUsage = VMemoryUsage::device,
+										  Maybe<VImageAspectFlags> aspect = none);
+	static Ex<PVImageView> createAndUploadWithView(VulkanDevice &, CSpan<Image>,
+												   Maybe<VImageAspectFlags> aspect = none);
 
 	auto memoryBlock() { return m_memory_block; }
 	auto dimensions() const { return m_dims; }

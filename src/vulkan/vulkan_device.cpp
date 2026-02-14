@@ -285,9 +285,8 @@ Ex<void> VulkanDevice::initialize(const VDeviceSetup &setup) {
 	EXPECT(m_cmds->initialize(ref()));
 
 	VImageSetup img_setup{VColorFormat::rgba8_unorm, int2(4, 4)};
-	auto white_image = EX_PASS(VulkanImage::create(*this, img_setup));
-	EXPECT(white_image->upload(Image({4, 4}, ColorId::white)));
-	m_dummies->dummy_image_2d = VulkanImageView::create(white_image);
+	m_dummies->dummy_image_2d = EX_PASS(VulkanImage::createWithView(*this, img_setup));
+	EXPECT(m_dummies->dummy_image_2d->image()->upload(Image({4, 4}, ColorId::white)));
 
 	auto rt_usage =
 		VBufferUsage::accel_struct_storage | VBufferUsage::accel_struct_build_input_read_only;
