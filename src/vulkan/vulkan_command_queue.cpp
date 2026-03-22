@@ -150,8 +150,8 @@ void VulkanCommandQueue::waitForSwapFrameAvailable() {
 	DASSERT(m_status != Status::frame_running);
 	auto &swap_frame = m_swap_frames[m_swap_index];
 	if(swap_frame.previous_commands) {
-		auto &previous_fence = swap_frame.previous_commands.back().fence;
-		vkWaitForFences(m_device_handle, 1, &previous_fence, VK_TRUE, UINT64_MAX);
+		for(auto &command : swap_frame.previous_commands)
+			vkWaitForFences(m_device_handle, 1, &command.fence, VK_TRUE, UINT64_MAX);
 		for(auto &command : swap_frame.previous_commands)
 			recycleCommands(command);
 		swap_frame.previous_commands.clear();
