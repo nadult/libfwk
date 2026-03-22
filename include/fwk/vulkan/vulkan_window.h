@@ -71,6 +71,7 @@ class VulkanWindow {
 
 	void grabMouse(bool);
 	void showCursor(bool);
+	void setFocus();
 
 	string clipboardText() const;
 	void setClipboardText(ZStr);

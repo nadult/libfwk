@@ -345,6 +345,12 @@ void VulkanWindow::showCursor(bool flag) {
 		SDL_HideCursor();
 }
 
+void VulkanWindow::setFocus() {
+	SDL_RaiseWindow(m_impl->window);
+	SDL_SetWindowAlwaysOnTop(m_impl->window, true);
+	SDL_SetWindowAlwaysOnTop(m_impl->window, false);
+}
+
 string VulkanWindow::clipboardText() const {
 	auto ret = SDL_GetClipboardText();
 	return ret ? string(ret) : string();
