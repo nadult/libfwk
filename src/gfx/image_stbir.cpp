@@ -6,7 +6,10 @@
 #define STB_IMAGE_RESIZE_STATIC
 #define STB_IMAGE_RESIZE_IMPLEMENTATION
 
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wunused-function"
 #include "../extern/stb_image_resize.h"
+#pragma GCC diagnostic pop
 
 namespace fwk {
 
