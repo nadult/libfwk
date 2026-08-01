@@ -1,7 +1,15 @@
 #!/usr/bin/env python
 
-import argparse, os, re, subprocess, shutil
+import argparse
+import os
+import re
+import shutil
+import subprocess
 import sys
+
+
+class FormatterError(Exception):
+    pass
 
 
 class CodeFormatter:
@@ -15,10 +23,11 @@ class CodeFormatter:
         for name in names:
             if shutil.which(name) is not None:
                 return name
-        raise Exception(f"{names[0]} is missing")
+        raise FormatterError(f"{names[0]} is missing")
 
     def _verify_clang_format(self):
-        result = subprocess.run([self.clang_format_cmd, "--version"], stdout=subprocess.PIPE)
+        cmd = [self.clang_format_cmd, "--version"]
+        result = subprocess.run(cmd, stdout=subprocess.PIPE, check=False)
         tokens = result.stdout.decode("utf-8").split()
         while len(tokens) > 0 and tokens[0] != "clang-format":
             tokens.pop(0)
@@ -28,12 +37,14 @@ class CodeFormatter:
             or tokens[0] != "clang-format"
             or tokens[1] != "version"
         ):
-            raise Exception(f"error while checking clang-format version (version string: {tokens})")
+            raise FormatterError(
+                f"error while checking clang-format version (version string: {tokens})"
+            )
         version = tokens[2].split(".", 2)
         print(f"clang-format version: {version[0]}.{version[1]}.{version[2]}")
 
         if int(version[0]) < self.expected_version:
-            raise Exception(
+            raise FormatterError(
                 f"clang-format is too old; At least version {self.expected_version} is required"
             )
 
@@ -43,11 +54,11 @@ class CodeFormatter:
         if check:
             full_command += ["--dry-run", "-Werror"]
         full_command += files
-        result = subprocess.run(full_command)
+        result = subprocess.run(full_command, check=False)
 
         if check:
             if result.returncode != 0:
-                exit(1)
+                sys.exit(1)
             print("All OK")
 
 
@@ -63,9 +74,9 @@ def find_files(root_dirs, regex):
 
 def check_black_installed():
     cmd = [sys.executable, "-m", "black", "--version"]
-    result = subprocess.run(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+    result = subprocess.run(cmd, capture_output=True, check=False)
     if result.returncode != 0:
-        raise Exception("Black is not installed")
+        raise FormatterError("Black is not installed")
 
 
 def format_python(files: list[str], check: bool):
@@ -74,10 +85,10 @@ def format_python(files: list[str], check: bool):
     if check:
         cmd += ["--check", "--color", "--diff"]
     cmd += files
-    result = subprocess.run(cmd)
+    result = subprocess.run(cmd, check=False)
     if check:
         if result.returncode != 0:
-            exit(1)
+            sys.exit(1)
         print("All OK")
 
 

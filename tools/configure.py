@@ -3,9 +3,20 @@
 # Copyright (C) Krzysztof Jakubowski <nadult@fastmail.fm>
 # This file is part of libfwk. See license.txt for details.
 
-import argparse, enum, hashlib, importlib.util, json, os, pathlib, re, shutil, ssl, subprocess, sys, tempfile
+import argparse
+import enum
+import hashlib
+import importlib.util
+import json
+import os
+import pathlib
+import re
+import shutil
+import ssl
+import subprocess
+import sys
+import tempfile
 from dataclasses import dataclass, field
-from typing import Optional
 from urllib.parse import urlparse
 
 # TODO: better naming, especially differentiation between packages which can be downloaded
@@ -148,7 +159,7 @@ def download_file_unsafe(url: str, dest_path: str):
         shutil.copyfileobj(response, out_file)
 
 
-def zip_directory(target_dir: str, zip_path_base: Optional[str] = None) -> Optional[str]:
+def zip_directory(target_dir: str, zip_path_base: str | None = None) -> str | None:
     assert os.path.isdir(target_dir), f"Cannot zip directory: {target_dir}"
 
     zip_path_base = zip_path_base or target_dir
@@ -167,7 +178,7 @@ def check_commands_available(commands: list[str]) -> bool:
             print_error(
                 f"Command missing: {command} please install it first before running this script"
             )
-            exit(1)
+            sys.exit(1)
 
 
 def find_subdirs(dir: str) -> list[str]:
@@ -219,7 +230,7 @@ def find_visual_studio_installation() -> str:
     return None
 
 
-def find_vcvars64_bat(visual_studio_path: str = None) -> Optional[str]:
+def find_vcvars64_bat(visual_studio_path: str) -> str | None:
     path = os.path.join(visual_studio_path, "VC", "Auxiliary", "Build", "vcvars64.bat")
     if os.path.exists(path):
         return pathlib.Path(path).as_posix()
@@ -238,7 +249,7 @@ def get_vcvars_environment(vcvars_path: str) -> dict:
         result = subprocess.run(cmd, shell=True, capture_output=True, text=True, check=True)
     except subprocess.CalledProcessError as e:
         print(f"Error running vcvars64.bat: {e}\nStdout: {e.stdout}\nStderr: {e.stderr}")
-        exit(1)
+        sys.exit(1)
     finally:
         os.remove(temp_batch_file)
 
@@ -251,7 +262,7 @@ def get_vcvars_environment(vcvars_path: str) -> dict:
     return env
 
 
-def visual_studio_year_version(path: str, env: dict) -> Optional[tuple[int, int]]:
+def visual_studio_year_version(path: str, env: dict) -> tuple[int, int] | None:
     year = None
     for part in reversed(path.split(os.sep)):
         if part.startswith("20") and len(part) == 4 and part.isdigit():
@@ -276,12 +287,12 @@ class Generator(enum.Enum):
 
 @dataclass
 class BuildPlatformInfo:
-    vs_year: Optional[int] = None
-    vs_major: Optional[int] = None
-    vs_env: Optional[dict] = None
+    vs_year: int | None = None
+    vs_major: int | None = None
+    vs_env: dict | None = None
 
 
-def windows_build_platform_info(vs_path: Optional[str] = None) -> BuildPlatformInfo:
+def windows_build_platform_info(vs_path: str | None = None) -> BuildPlatformInfo:
     vs_path = vs_path or find_visual_studio_installation()
     vcvars64_path = find_vcvars64_bat(vs_path) if vs_path else None
     if not vs_path or not vcvars64_path:
@@ -293,9 +304,7 @@ def windows_build_platform_info(vs_path: Optional[str] = None) -> BuildPlatformI
     return BuildPlatformInfo(vs_year=vs_year_version[0], vs_major=vs_year_version[1], vs_env=vs_env)
 
 
-def build_platform_info(
-    args: argparse.Namespace, generator: Generator
-) -> Optional[BuildPlatformInfo]:
+def build_platform_info(args: argparse.Namespace, generator: Generator) -> BuildPlatformInfo | None:
     if os.name == "nt":
         if generator == Generator.DEFAULT:
             # Platform info not required in this case
@@ -305,15 +314,15 @@ def build_platform_info(
 
 
 def build_environment(
-    build_platform_info: Optional[BuildPlatformInfo], generator: Generator
-) -> Optional[dict]:
-    if os.name == "nt" and build_platform_info and build_platform_info.vs_env:
-        if generator in [
-            Generator.NINJA_CLANG_CL,
-            Generator.VS_CLANG_CL,
-            Generator.NINJA_MSVC,
-        ]:
-            return build_platform_info.vs_env
+    build_platform_info: BuildPlatformInfo | None, generator: Generator
+) -> dict | None:
+    if (
+        os.name == "nt"
+        and build_platform_info
+        and build_platform_info.vs_env
+        and generator in [Generator.NINJA_CLANG_CL, Generator.VS_CLANG_CL, Generator.NINJA_MSVC]
+    ):
+        return build_platform_info.vs_env
     return None
 
 
@@ -331,7 +340,7 @@ def valid_generators() -> list[str]:
 
 
 def generator_options(
-    generator: Generator, build_platform_info: Optional[BuildPlatformInfo] = None
+    generator: Generator, build_platform_info: BuildPlatformInfo | None = None
 ) -> dict:
     options = []
     if generator == Generator.NINJA_CLANG_CL:
@@ -481,7 +490,7 @@ class ConanRecipe:
     name: str
     version: str
     options: list[str] = field(default_factory=list)
-    platform: Optional[str] = None
+    platform: str | None = None
     platform_agnostic: bool = False
 
     @staticmethod
@@ -525,9 +534,9 @@ class ConanRecipe:
 @dataclass
 class CMakeRecipeBuild:
     full_name: str = ""
-    platform: Optional[str] = None
+    platform: str | None = None
     build_type: str = ""
-    build_suffix: Optional[str] = None
+    build_suffix: str | None = None
     cmake_options: dict[str, str] = field(default_factory=dict)
     install_files: list[str] = field(default_factory=list)
 
@@ -680,10 +689,10 @@ class DependenciesJson:
 class CMakeConfig:
     source_dir: str
     build_dir: str
-    build_type: Optional[BuildType] = BuildType.DEBUG
-    generator: Optional[Generator] = Generator.DEFAULT
+    build_type: BuildType | None = BuildType.DEBUG
+    generator: Generator | None = Generator.DEFAULT
     cmake_defines: dict = field(default_factory=dict)
-    build_platform_info: Optional[BuildPlatformInfo] = None
+    build_platform_info: BuildPlatformInfo | None = None
 
 
 def configure_project(cmake_config: CMakeConfig):
@@ -709,7 +718,7 @@ class BuildOptions:
     clean_build: bool = False
     skip_download_source: bool = False
     generator: Generator = Generator.DEFAULT
-    build_platform_info: Optional[BuildPlatformInfo] = None
+    build_platform_info: BuildPlatformInfo | None = None
 
     @staticmethod
     def initialize(args: argparse.Namespace) -> "BuildOptions":
@@ -720,7 +729,7 @@ class BuildOptions:
         self.build_platform_info = build_platform_info(args, self.generator)
         return self
 
-    def build_environment(self) -> Optional[dict]:
+    def build_environment(self) -> dict | None:
         return build_environment(self.build_platform_info, self.generator)
 
 
@@ -759,14 +768,14 @@ def build_package(
             packages = conan_list_local_packages(conan_recipe, options.platform)
         if not packages:
             print(f"  Couldn't build or download any matching packages for: {reference}")
-            exit(1)
+            sys.exit(1)
 
         package = conan_get_best_package(packages)
         package_path = conan_get_package_path(package)
 
         print(f"  Installing {package.package_reference()}\n    from: {package_path}")
         copy_subdirs(target_dir, package_path, ["include", "lib", "bin"])
-        print("")
+        print()
         return package.version
 
     cmake_recipe = find_cmake_recipe(deps, name, options.platform)
@@ -774,7 +783,7 @@ def build_package(
         print(f"Building from cmake recipe: {stylize_text(name, Color.DEFAULT, Style.BOLD)}")
         print(f"  Version: {cmake_recipe.version}")
         build_cmake_package(cmake_recipe, target_dir, build_dir, options)
-        print("")
+        print()
         return cmake_recipe.version
 
     assert False, f"Don't know how to build package: '{name}'"
@@ -798,9 +807,7 @@ class ConanPackageInfo:
         return f"{self.name}/{self.version}:{self.package_id}"
 
 
-def find_conan_recipe(
-    deps_json: DependenciesJson, name: str, platform: str
-) -> Optional[ConanRecipe]:
+def find_conan_recipe(deps_json: DependenciesJson, name: str, platform: str) -> ConanRecipe | None:
     for conan_recipe in deps_json.conan_recipes:
         if not conan_recipe.matches_platform(platform):
             continue
@@ -815,9 +822,9 @@ def conan_parse_packages_json(recipe: ConanRecipe, json_text: str) -> list[Conan
         return []
     revs = local_cache[recipe.reference()]["revisions"]
     out = []
-    for rev_id in revs.keys():
+    for rev_id in revs:
         packages = revs[rev_id]["packages"]
-        for package_id in packages.keys():
+        for package_id in packages:
             info = packages[package_id]["info"]
             settings = info.get("settings", {})
             options = info.get("options", {})
@@ -827,52 +834,53 @@ def conan_parse_packages_json(recipe: ConanRecipe, json_text: str) -> list[Conan
     return out
 
 
-_conan_command: Optional[list[str]] = None
+_conan_command: list[str] | None = None
 
 
-def conan_find_command():
+def conan_find_command() -> list[str]:
     global _conan_command
-    if shutil.which("conan") is not None:
-        _conan_command = ["conan"]
-    elif importlib.util.find_spec("conan") is not None:
-        _conan_command = [sys.executable, "-m", "conan"]
-    else:
-        print_error(
-            "Conan not found. Please install conan directly, add it to PATH or"
-            "install it via pip."
-        )
-        exit(1)
+    if _conan_command is None:
+        if shutil.which("conan") is not None:
+            _conan_command = ["conan"]
+        elif importlib.util.find_spec("conan") is not None:
+            _conan_command = [sys.executable, "-m", "conan"]
+        else:
+            print_error(
+                "Conan not found. Please install conan directly, add it to PATH or"
+                " install it via pip."
+            )
+            sys.exit(1)
+    return _conan_command
 
 
-def conan_check_version():
-    global _conan_command
+class ConanException(Exception):
+    pass
+
+
+def conan_check_version(conan_command: list[str]):
     conan_version = None
     min_version = 2
 
     try:
-        result = subprocess.run(_conan_command + ["--version"], stdout=subprocess.PIPE)
+        result = subprocess.run(conan_command + ["--version"], stdout=subprocess.PIPE, check=False)
         tokens = result.stdout.decode("utf-8").split()
         if len(tokens) >= 3 and tokens[0] == "Conan" and tokens[1] == "version":
             conan_version = [int(x) for x in tokens[2].split(".")]
-    except Exception as e:
+    except OSError as e:
         print(f"Exception while checking conan version: {e}")
-        pass
 
     if not conan_version:
-        raise Exception(f"Conan not found. At least version {min_version} is required.")
+        raise ConanException(f"Conan not found. At least version {min_version} is required.")
     if len(conan_version) < 3 or conan_version[0] < 2:
-        raise Exception(
+        raise ConanException(
             f"Invalid conan version: {conan_version} At least version {min_version} is required."
         )
 
 
 def conan_command() -> list[str]:
-    global _conan_command
-    if _conan_command is None:
-        conan_find_command()
-        conan_check_version()
-    assert _conan_command is not None
-    return _conan_command
+    conan_command = conan_find_command()
+    conan_check_version(conan_command)
+    return conan_command
 
 
 def conan_list_local_packages(recipe: ConanRecipe, platform: str) -> list[ConanPackageInfo]:
@@ -881,10 +889,10 @@ def conan_list_local_packages(recipe: ConanRecipe, platform: str) -> list[ConanP
     command += ["-p", recipe.package_query(platform)]
     # print("List command: " + " ".join(command))
 
-    result = subprocess.run(command, stderr=subprocess.PIPE, stdout=subprocess.PIPE)
+    result = subprocess.run(command, capture_output=True, check=False)
     if result.returncode != 0:
         print(f"Error while getting package info: {recipe.reference()}")
-        exit(1)
+        sys.exit(1)
     return conan_parse_packages_json(recipe, result.stdout.decode("utf-8"))
 
 
@@ -894,10 +902,10 @@ def conan_download_packages(recipe: ConanRecipe, platform: str) -> list[ConanPac
     command += ["-p", recipe.package_query(platform)]
     # print("Download command: " + " ".join(command))
 
-    result = subprocess.run(command, stderr=subprocess.PIPE, stdout=subprocess.PIPE)
+    result = subprocess.run(command, capture_output=True, check=False)
     if result.returncode != 0:
         print(f"Error while downloading dependency: {recipe.reference()}")
-        exit(1)
+        sys.exit(1)
     return conan_parse_packages_json(recipe, result.stdout.decode("utf-8"))
 
 
@@ -907,11 +915,11 @@ def conan_build_packages(recipe: ConanRecipe, platform: str):
     command += recipe.package_query_install_commands(platform)
     print("  Build command: " + " ".join(command))
 
-    result = subprocess.run(command)
+    result = subprocess.run(command, check=False)
     if result.returncode != 0:
         print(f"  Error while building dependency: {recipe.reference()}")
         print("  Build command: " + " ".join(command))
-        exit(1)
+        sys.exit(1)
 
 
 def conan_get_best_package(packages: list[ConanPackageInfo]) -> ConanPackageInfo:
@@ -926,10 +934,10 @@ def conan_get_best_package(packages: list[ConanPackageInfo]) -> ConanPackageInfo
 
 def conan_get_package_path(info: ConanPackageInfo):
     command = conan_command() + ["cache", "path", info.package_reference()]
-    result = subprocess.run(command, stdout=subprocess.PIPE)
+    result = subprocess.run(command, stdout=subprocess.PIPE, check=False)
     if result.returncode != 0:
         print(f"Error while retrieving package path for: {info.package_reference()}")
-        exit(1)
+        sys.exit(1)
     return result.stdout.decode("utf-8").split()[0]
 
 
@@ -938,9 +946,7 @@ def conan_get_package_path(info: ConanPackageInfo):
 # =================================================================================================
 
 
-def find_cmake_recipe(
-    deps_json: DependenciesJson, name: str, platform: str
-) -> Optional[CMakeRecipe]:
+def find_cmake_recipe(deps_json: DependenciesJson, name: str, platform: str) -> CMakeRecipe | None:
     for recipe in deps_json.cmake_recipes:
         if recipe.name == name and recipe.matches_platform(platform):
             return recipe
@@ -1062,7 +1068,7 @@ def get_cached_package_names(deps: DependenciesJson, platform: str) -> list[str]
 
 
 # Returns a tuple (version, full_url, hash)
-def find_package_in_caches(deps: DependenciesJson, package_name: str) -> Optional[tuple[str, str]]:
+def find_package_in_caches(deps: DependenciesJson, package_name: str) -> tuple[str, str] | None:
     for cache in deps.package_caches:
         if cache.platform != current_platform():
             continue
@@ -1078,7 +1084,7 @@ def download_package(deps: DependenciesJson, package_name: str, deps_dir: str):
     cached_package = find_package_in_caches(deps, package_name)
     if not cached_package:
         print(f"Don't know how to download package: {package_name}")
-        exit(1)
+        sys.exit(1)
 
     version, url, hash = cached_package
     print(f"Downloading package: {stylize_text(package_name, Color.DEFAULT, Style.BOLD)}")
@@ -1095,11 +1101,11 @@ def download_package(deps: DependenciesJson, package_name: str, deps_dir: str):
         if downloaded_hash != hash:
             print_error(f"Error: downloaded file has invalid hash: {package_file_path}")
             print_error(f"File hash: {downloaded_hash} expected: {hash}")
-            exit(1)
+            sys.exit(1)
 
     print(f"  Unpacking to: {deps_dir}")
     shutil.unpack_archive(package_file_path, deps_dir)
-    print("")
+    print()
 
 
 # =================================================================================================
@@ -1217,22 +1223,23 @@ def parse_arguments() -> argparse.Namespace:
             help="CMake definitions (can be specified multiple times).",
         )
 
+    download_help = (
+        "Selection of packages to download. "
+        "If omitted all required dependencies will be downloaded."
+    )
+    build_help = (
+        "Selection of dependencies to build. "
+        "If omitted all buildable dependencies will be built."
+    )
+    package_help = (
+        "Selection of dependencies to build and package. "
+        "If omitted all buildable dependencies will be built and packaged."
+    )
+
     for sub_parser, help_text in [
-        (
-            download_parser,
-            "Selection of packages to download. "
-            "If omitted all required dependencies will be downloaded.",
-        ),
-        (
-            build_parser,
-            "Selection of dependencies to build. "
-            "If omitted all buildable dependencies will be built.",
-        ),
-        (
-            package_parser,
-            "Selection of dependencies to build and package. "
-            "If omitted all buildable dependencies will be built and packaged.",
-        ),
+        (download_parser, download_help),
+        (build_parser, build_help),
+        (package_parser, package_help),
     ]:
         sub_parser.add_argument(
             "dependencies",
@@ -1302,7 +1309,7 @@ def dependencies_main(args: argparse.Namespace):
     unavailable_deps = [dep for dep in selected_deps if dep not in available_deps]
     if unavailable_deps:
         print_error(f"The following requested dependencies are not available: {unavailable_deps}")
-        exit(1)
+        sys.exit(1)
 
     deps_dir = os.path.join(root_dir, "dependencies")
 
