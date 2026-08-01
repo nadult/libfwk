@@ -35,7 +35,6 @@ FWK_COPYABLE_CLASS_IMPL(Canvas2D);
 Ex<SimpleDrawCall> Canvas2D::genDrawCall(ShaderCompiler &compiler, VulkanDevice &device,
 										 PVRenderPass render_pass, VMemoryUsage mem_usage) {
 	PERF_SCOPE();
-
 	DASSERT_EQ(m_colors.size(), m_positions.size());
 	DASSERT_EQ(m_tex_coords.size(), m_positions.size());
 
@@ -440,5 +439,35 @@ void Canvas2D::addRect(const FRect &rect, FColor color) {
 void Canvas2D::addSegment(const float2 &p1, const float2 &p2, FColor color) {
 	IColor icolor(color);
 	addSegments({p1, p2}, {icolor, icolor});
+}
+
+Canvas2D::LabelStyleId Canvas2D::addLabelStyle(FontStyle style) {
+	m_label_styles.push_back({style});
+	return Canvas2D::LabelStyleId(unsigned(m_label_styles.size() - 1));
+}
+
+void Canvas2D::addLabel(FRect rect, Str text, LabelStyleId style, IColor color) {
+	DASSERT(style < m_label_styles.size());
+	m_labels.push_back({rect, string(text), style, color});
+}
+
+void Canvas2D::commitLabels(const Font &font) {
+	if(m_labels.empty())
+		return;
+
+	// Transforms are only applied to the label rects, but not to the font sizes.
+	auto view = m_matrix_stack.viewMatrix();
+	pushViewMatrix();
+	setViewMatrix(Matrix4::identity());
+	for(auto &label : m_labels) {
+		auto &ls = m_label_styles[label.style_id];
+		FontStyle style = ls.style;
+		style.text_color = IColor(FColor(style.text_color) * FColor(label.color));
+		auto p0 = (view * float4(label.rect.min(), 0.0f, 1.0f)).xy();
+		auto p1 = (view * float4(label.rect.max(), 0.0f, 1.0f)).xy();
+		font.draw(*this, FRect(vmin(p0, p1), vmax(p0, p1)), style, label.text);
+	}
+	popViewMatrix();
+	m_labels.clear();
 }
 }
