@@ -36,14 +36,14 @@ jobs:
   build-dependency:
     runs-on: ${{ inputs.runner_os }}
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
         with:
           submodules: "true"
 
       - name: Prepare Python requirements.txt
         run: echo "conan" >> requirements.txt
       - name: Set up Python
-        uses: actions/setup-python@v5
+        uses: actions/setup-python@v7
         with:
           python-version: "3.12"
           architecture: "x64"
@@ -58,7 +58,7 @@ jobs:
           python ${{ inputs.libfwk_path }}/tools/configure.py package-deps ${{ inputs.dependency }}
 
       - name: Upload artifact
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: ${{ inputs.runner_os }}-${{ inputs.dependency }}
           path: dependencies/*.zip

@@ -51,12 +51,12 @@ jobs:
       deps-linux: ${{ inputs.deps_linux || steps.list-dependencies.outputs.deps-linux }}
       sha1-short: ${{ steps.list-dependencies.outputs.sha1-short }}
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
         with:
           submodules: "true"
 
       - name: Set up Python
-        uses: actions/setup-python@v5
+        uses: actions/setup-python@v7
         with:
           python-version: "3.12"
           architecture: "x64"
@@ -109,7 +109,7 @@ jobs:
     needs: [list-dependencies, build-packages-windows, build-packages-linux]
     steps:
       - name: Merge windows artifacts
-        uses: actions/upload-artifact/merge@v4
+        uses: actions/upload-artifact/merge@v7
         with:
           delete-merged: true
           name: windows-2025-${{needs.list-dependencies.outputs.sha1-short}}
@@ -118,7 +118,7 @@ jobs:
           pattern: "windows-2025-*"
 
       - name: Merge linux artifacts
-        uses: actions/upload-artifact/merge@v4
+        uses: actions/upload-artifact/merge@v7
         with:
           delete-merged: true
           name: ubuntu-22.04-${{needs.list-dependencies.outputs.sha1-short}}
