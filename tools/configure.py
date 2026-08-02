@@ -257,9 +257,12 @@ def visual_studio_year_version(path: str, env: dict) -> Optional[tuple[int, int]
         if part.startswith("20") and len(part) == 4 and part.isdigit():
             year = int(part)
             break
-    major = env["VisualStudioVersion"].split(".")[0] if "VisualStudioVersion" in env else None
+    major = env.get("VisualStudioVersion", "").split(".")[0].strip() or None
+    major = int(major) if major and major.isdigit() else None
+    if year is None and major is not None:
+        year = (major == 17 and 2022) or (major == 18 and 2026) or None
     if year is not None and major is not None:
-        return (year, int(major))
+        return (year, major)
     return None
 
 
