@@ -13,11 +13,11 @@ on:
       deps_linux:
         required: false
         type: string
-        default: ''
+        default: ""
       deps_windows:
         required: false
         type: string
-        default: ''
+        default: ""
   workflow_call:
     inputs:
       libfwk_path:
@@ -27,18 +27,18 @@ on:
       deps_linux:
         required: false
         type: string
-        default: ''
+        default: ""
       deps_windows:
         required: false
         type: string
-        default: ''
+        default: ""
   push:
     branches:
       - main
     paths:
-      - 'tools/configure.py'
-      - 'dependencies.json'
-      - '.github/workflows/build-package*.yml'
+      - "tools/configure.py"
+      - "dependencies.json"
+      - ".github/workflows/build-package*.yml"
 
 env:
   PYTHONUNBUFFERED: 1
@@ -51,33 +51,33 @@ jobs:
       deps-linux: ${{ inputs.deps_linux || steps.list-dependencies.outputs.deps-linux }}
       sha1-short: ${{ steps.list-dependencies.outputs.sha1-short }}
     steps:
-    - uses: actions/checkout@v4
-      with:
-        submodules: 'true'
+      - uses: actions/checkout@v4
+        with:
+          submodules: "true"
 
-    - name: Set up Python
-      uses: actions/setup-python@v5
-      with:
-        python-version: '3.12'
-        architecture: 'x64'
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          architecture: "x64"
 
-    - name: List buildable packages
-      id: list-dependencies
-      run: |
-        ls .
-        deps_windows=$(python ${{ inputs.libfwk_path || '.' }}/tools/configure.py list-deps --buildable-only --platform windows)
-        deps_linux=$(python ${{ inputs.libfwk_path || '.' }}/tools/configure.py list-deps --buildable-only --platform linux)
-        echo deps-windows: $deps_windows
-        echo deps-linux: $deps_linux
+      - name: List buildable packages
+        id: list-dependencies
+        run: |
+          ls .
+          deps_windows=$(python ${{ inputs.libfwk_path || '.' }}/tools/configure.py list-deps --buildable-only --platform windows)
+          deps_linux=$(python ${{ inputs.libfwk_path || '.' }}/tools/configure.py list-deps --buildable-only --platform linux)
+          echo deps-windows: $deps_windows
+          echo deps-linux: $deps_linux
 
-        echo "deps-windows<<EOF" >> $GITHUB_OUTPUT
-        echo "$deps_windows" >> $GITHUB_OUTPUT
-        echo "EOF" >> $GITHUB_OUTPUT
+          echo "deps-windows<<EOF" >> $GITHUB_OUTPUT
+          echo "$deps_windows" >> $GITHUB_OUTPUT
+          echo "EOF" >> $GITHUB_OUTPUT
 
-        echo "deps-linux<<EOF" >> $GITHUB_OUTPUT
-        echo "$deps_linux" >> $GITHUB_OUTPUT
-        echo "EOF" >> $GITHUB_OUTPUT
-        echo sha1-short="$(git rev-parse --short HEAD)" >> $GITHUB_OUTPUT
+          echo "deps-linux<<EOF" >> $GITHUB_OUTPUT
+          echo "$deps_linux" >> $GITHUB_OUTPUT
+          echo "EOF" >> $GITHUB_OUTPUT
+          echo sha1-short="$(git rev-parse --short HEAD)" >> $GITHUB_OUTPUT
 
   build-packages-windows:
     needs: list-dependencies
