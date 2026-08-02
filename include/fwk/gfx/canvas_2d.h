@@ -3,6 +3,7 @@
 
 #pragma once
 
+#include "font.h"
 #include "fwk/geom_base.h"
 #include "fwk/gfx/color.h"
 #include "fwk/gfx/drawing.h"
@@ -14,7 +15,10 @@
 namespace fwk {
 
 // TODO: fix point & line drawing (direction and scale)
+// TODO: add optional background rects to labels
+// TODO: add multiple font support for labels?
 // TODO: add functionality from Visualizer2
+// TODO: restore advanced drawing functions from Visualizer2
 
 class Canvas2D {
   public:
@@ -78,7 +82,23 @@ class Canvas2D {
 		addSegment(float2(p1), float2(p2), color);
 	}
 
-	// TODO: advanced drawing functions from Visualizer2
+	// --------------------------------------------------------------------------------------------
+	// ------------ Label drawing functions -------------------------------------------------------
+
+	using LabelStyleId = TagId<Tag::label_style>;
+	LabelStyleId addLabelStyle(FontStyle style);
+
+	void addLabel(FRect, Str, LabelStyleId, IColor = ColorId::white);
+	template <class T>
+	void addLabel(Box<T> box, Str text, LabelStyleId style, IColor color = ColorId::white) {
+		addLabel(FRect(box), text, style, color);
+	}
+	template <class T>
+	void addLabel(T pos, Str text, LabelStyleId style, IColor color = ColorId::white) {
+		addLabel(Box<T>(pos, pos), text, style, color);
+	}
+
+	void commitLabels(const Font &);
 
   private:
 	struct Group {
@@ -90,6 +110,17 @@ class Canvas2D {
 		int first_index, num_indices;
 		int pipeline_index;
 		int scissor_rect_index;
+	};
+
+	struct LabelStyle {
+		FontStyle style;
+	};
+
+	struct Label {
+		FRect rect;
+		string text;
+		LabelStyleId style_id;
+		IColor color;
 	};
 
 	int getPipeline(const SimplePipelineSetup &);
@@ -110,6 +141,9 @@ class Canvas2D {
 	PodVector<TexCoord> m_tex_coords;
 	PodVector<IColor> m_colors;
 	PodVector<u32> m_indices;
+
+	vector<LabelStyle> m_label_styles;
+	vector<Label> m_labels;
 
 	float m_point_width = 1.0f, m_segment_width = 1.0f;
 	FColor m_cur_color = ColorId::white;

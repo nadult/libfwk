@@ -108,6 +108,7 @@ void Investigator2::draw(Canvas2D &canvas, TextFormatter &fmt) {
 	auto old_point_width = canvas.pointWidth();
 	canvas.setPointWidth(1.0 / (m_scale * m_view_scale));
 	auto text = m_vis_func(canvas, cursor_pos);
+	canvas.commitLabels(*m_font);
 	canvas.setPointWidth(old_point_width);
 	canvas.popViewMatrix();
 
@@ -136,20 +137,6 @@ void Investigator2::draw(PVRenderPass render_pass) {
 
 	FontStyle style{ColorId::white, ColorId::black};
 	auto extents = m_font->evalExtents(fmt.text());
-
-	// TODO: labels
-	/*
-	float scale = m_scale * m_view_scale;
-	float2 offset = -float2(m_view_pos);
-	for(auto &label : labels) {
-		float2 rect_min = label.rect.min() + offset, rect_max = label.rect.max() + offset;
-		rect_min.y *= -1.0f, rect_max.y *= -1.0f;
-		FRect rect = FRect(rect_min, rect_max) * scale + float2(rlist.viewport().center());
-
-		FontStyle style{label.style.color, negativeColor(label.style.color), HAlign::center,
-						VAlign::center};
-		m_font->draw(vis.triangleBuffer(), rect, style, label.text);
-	}*/
 
 	canvas.addFilledRect(FRect(float2(extents.size()) + float2(10, 10)), IColor(0, 0, 0, 80));
 	FRect text_rect = FRect({5, 5}, {300, 100});
