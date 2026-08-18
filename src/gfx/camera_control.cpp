@@ -126,7 +126,8 @@ float CameraControl::moveSpeed() const {
 }
 
 vector<InputEvent> CameraControl::handleInput(vector<InputEvent> events, MaybeCRef<float3> cursor) {
-	float2 move, rot;
+	float3 move;
+	float2 rot;
 	float zoom = 0.0f, mouse_zoom = 0.0f;
 	Maybe<float2> target_cursor_pos;
 
@@ -139,12 +140,12 @@ vector<InputEvent> CameraControl::handleInput(vector<InputEvent> events, MaybeCR
 		if(isOneOf(event.key(), 'a', 'd', 'w', 's', 'r', 'f')) {
 			move.x += linearControl(event, 'd', 'a');
 			move.y += linearControl(event, 's', 'w');
-			zoom += linearControl(event, 'r', 'f');
+			move.z += linearControl(event, 'f', 'r');
 		} else if(isOneOf(event.key(), InputKey::left, InputKey::right, InputKey::up,
 						  InputKey::down, InputKey::pageup, InputKey::pagedown)) {
 			move.x += linearControl(event, InputKey::right, InputKey::left);
 			move.y += linearControl(event, InputKey::down, InputKey::up);
-			zoom += linearControl(event, InputKey::pageup, InputKey::pagedown);
+			move.z += linearControl(event, InputKey::pagedown, InputKey::pageup);
 		} else if(event.isMouseOverEvent()) {
 			mouse_zoom -= event.mouseWheel() * 2.0f;
 			const auto &viewport = o_config.params.viewport;
@@ -163,7 +164,7 @@ vector<InputEvent> CameraControl::handleInput(vector<InputEvent> events, MaybeCR
 	m_fast_mode = lshift;
 
 	float move_speed = moveSpeed() * m_time_diff;
-	move = vclamp(move, float2(-1.0f), float2(1.0f)) * move_speed;
+	move = vclamp(move, float3(-1.0f), float3(1.0f)) * move_speed;
 	zoom = clamp(zoom, -1.0f, 1.0f) * 3.0 * move_speed + mouse_zoom * 0.2f;
 	rot *= o_config.rotation_speed;
 

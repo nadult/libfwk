@@ -47,7 +47,7 @@ void OrbitingCamera::focus(FBox box) {
 	distance = max(box.width(), box.height(), box.depth()) * 1.25f;
 }
 
-void OrbitingCamera::move(float2 move, float2 rot, float tdist) {
+void OrbitingCamera::move(float3 move, float2 rot, float tdist) {
 	float pi_half = pi * 0.5f;
 
 	move *= 20.0f;

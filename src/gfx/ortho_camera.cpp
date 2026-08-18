@@ -101,7 +101,7 @@ pair<float3, float3> OrthoCamera::forwardRight() const {
 	return {forward, right};
 }
 
-void OrthoCamera::move(float2 move, float2 rot, float move_up) {
+void OrthoCamera::move(float3 move, float2 rot, float cur_zoom) {
 	// TODO: pass time_diff as well
 	float pi_half = pi * 0.5f;
 
@@ -114,9 +114,9 @@ void OrthoCamera::move(float2 move, float2 rot, float move_up) {
 
 	auto new_fwd = rotateVector(forward_xz, rot.x);
 	auto new_vert = clamp(rot_vert + rot.y, -pi_half, pi_half);
-	auto new_zoom = clamp(zoom * (1.0f - move_up * 0.1f), 5.0f, 200.0f);
+	auto new_zoom = clamp(zoom * (1.0f - cur_zoom * 0.1f), 5.0f, 200.0f);
 
-	xy_offset += move;
+	xy_offset += move.xy();
 	zoom = new_zoom;
 	forward_xz = new_fwd;
 	rot_vert = new_vert;

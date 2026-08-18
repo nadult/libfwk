@@ -18,7 +18,7 @@ struct FppCamera {
 	static FppCamera closest(const Camera &);
 	Camera toCamera(const CameraParams &) const;
 
-	void move(float2 move, float2 rot, float move_up);
+	void move(float3 move, float2 rot, float zoom);
 	void focus(FBox);
 
 	FWK_ORDER_BY(FppCamera, pos, forward_xz, rot_vert);

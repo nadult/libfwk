@@ -20,7 +20,7 @@ struct OrbitingCamera {
 	Segment3<float> makeRay(float2 screen_pos, IRect viewport, Matrix4 view_mat) const;
 
 	Camera toCamera(const CameraParams &) const;
-	void move(float2 move, float2 rot, float zoom);
+	void move(float3 move, float2 rot, float zoom);
 
 	FWK_ORDER_BY(OrbitingCamera, center, distance, rot_horiz, rot_vert);
 
