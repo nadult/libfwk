@@ -58,11 +58,10 @@ Camera FppCamera::toCamera(const CameraParams &params) const {
 	return Camera(pos, pos + fwd_right.first * 10.0f, up, params);
 }
 
-void FppCamera::move(float2 move, float2 rot, float move_up) {
+void FppCamera::move(float3 move, float2 rot, float zoom) {
 	float pi_half = pi * 0.5f;
 
 	move *= 16.0f;
-	move_up *= -16.0f;
 	rot *= 0.5f;
 
 	auto new_fwd = rotateVector(forward_xz, rot.x);
@@ -71,7 +70,7 @@ void FppCamera::move(float2 move, float2 rot, float move_up) {
 	auto fwd_right = forwardRight();
 	auto up = cross(fwd_right.first, fwd_right.second);
 
-	pos += fwd_right.second * move.x + fwd_right.first * move.y + up * move_up;
+	pos += fwd_right.second * move.x + fwd_right.first * move.y + up * move.z;
 	forward_xz = new_fwd;
 	rot_vert = new_vert;
 }

@@ -54,7 +54,7 @@ Camera PlaneCamera::toCamera(const CameraParams &params) const {
 	return Camera(fpos, fpos + forward(), up(), tparams);
 }
 
-void PlaneCamera::move(float2 move, float2 rot, float scale_mod) {
+void PlaneCamera::move(float3 move, float2 rot, float scale_mod) {
 	float new_zoom = zoom;
 	if(scale_mod != 0.0) {
 		scale_mod = clamp(scale_mod, -0.99f, 0.99f) * (1.0f / 10.0f);

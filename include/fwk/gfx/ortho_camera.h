@@ -27,7 +27,7 @@ struct OrthoCamera {
 	float2 xyOffset(float3 point) const;
 	void applyXYOffset();
 
-	void move(float2 move, float2 rot, float move_up);
+	void move(float3 move, float2 rot, float zoom);
 	void focus(FBox);
 
 	pair<float3, float3> forwardRight() const;

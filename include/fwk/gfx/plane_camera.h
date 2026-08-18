@@ -29,7 +29,7 @@ struct PlaneCamera {
 	float3 right() const;
 
 	Camera toCamera(const CameraParams &) const;
-	void move(float2 move, float2 rot, float zoom);
+	void move(float3 move, float2 rot, float zoom);
 
 	FWK_ORDER_BY(PlaneCamera, pos, zoom, axis_right, axis_up);
 
