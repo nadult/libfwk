@@ -118,6 +118,32 @@
       ]
     },
     {
+      "package": "zstd:1.5.7",
+      "github-project": "facebook/zstd",
+      "source-branch": "v1.5.7",
+      "source-sha1": "f8745da6ff1ad1e7bab384bd1f9d742439278e99",
+      "cmake-options": {
+        "ZSTD_BUILD_STATIC": "on",
+        "ZSTD_BUILD_SHARED": "off",
+        "ZSTD_BUILD_TESTS": "off"
+      },
+      "cmakelists-dir": "build/cmake",
+      "builds": {
+        "windows:release:": {
+          "install-files": [
+            "include/.*",
+            "lib/zstd_static.lib:lib/zstd.lib"
+          ]
+        },
+        "linux:release:": {
+          "install-files": [
+            "include/.*",
+            "lib/libzstd.a"
+          ]
+        }
+      }
+    },
+    {
       "package": "shaderc-combined:2025.4",
       "github-project": "google/shaderc",
       "source-branch": "v2025.4",

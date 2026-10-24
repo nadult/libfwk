@@ -400,6 +400,8 @@ def _make_pattern_validators():
     sha256_64 = r"[a-f0-9]{16}"
     sha1 = r"[a-f0-9]{40}"
     version = r"\d+(\.\d+)*(-\d+)?"
+    path_component = r"[A-Za-z0-9_.-]+"
+    relative_path = rf"{path_component}(/{path_component})*"
 
     return {
         "branch_name": _PatternValidator(branch_name),
@@ -411,6 +413,7 @@ def _make_pattern_validators():
         "package_name_version_hash": _PatternValidator(rf"{package_name}:{version}:{sha256_64}"),
         "conan_option": _PatternValidator(conan_option),
         "sha1": _PatternValidator(sha1),
+        "relative_path": _PatternValidator(relative_path),
     }
 
 
@@ -569,6 +572,7 @@ class CMakeRecipe:
     github_project: str
     source_branch: str
     source_sha1: str
+    cmakelists_dir: str
     source_patches: list[str] = field(default_factory=list)
     after_checkout_commands: list[str] = field(default_factory=list)
     default_build: CMakeRecipeBuild = field(default_factory=CMakeRecipeBuild)
@@ -592,6 +596,8 @@ class CMakeRecipe:
         source_patches = [os.path.join(patch_dir, p) for p in source_patches]
         after_checkout_commands = json.get("after-checkout-commands", [])
         _validate_list_type("cmake-recipe.after-checkout-commands", after_checkout_commands, str)
+        cmakelists_dir = json.get("cmakelists-dir", ".")
+        _validate_pattern("relative_path", "cmake-recipe.cmake-source-dir", [cmakelists_dir])
 
         default_build = CMakeRecipeBuild.parse(json, "")
         json_builds = json.get("builds", {})
@@ -617,6 +623,7 @@ class CMakeRecipe:
             source_sha1=source_sha1,
             source_patches=source_patches,
             after_checkout_commands=after_checkout_commands,
+            cmakelists_dir=cmakelists_dir,
             default_build=default_build,
             builds=builds,
         )
@@ -1029,6 +1036,8 @@ def build_cmake_package(
         print(f"Running command: {cmd}")
         subprocess.run(cmd, cwd=src_sub_dir, check=True, shell=True)
 
+    cmakelists_dir = os.path.join(src_sub_dir, *recipe.cmakelists_dir.split("/"))
+
     num_threads = os.cpu_count() * 2
     jobs_argument = [f"-j{num_threads}"] if num_threads > 1 else []
 
@@ -1041,7 +1050,7 @@ def build_cmake_package(
         prepare_dir(build_sub_dir, options.clean_build, False)
         prepare_dir(install_sub_dir, True, False)
 
-        configure_cmake_package(build, options, src_sub_dir, build_sub_dir, install_sub_dir)
+        configure_cmake_package(build, options, cmakelists_dir, build_sub_dir, install_sub_dir)
 
         print_step(f"Running build: {build.full_name}")
         build_cmd = ["cmake", "--build", ".", "--config", build.build_type, "--target", "install"]
