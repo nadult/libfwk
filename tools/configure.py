@@ -35,6 +35,10 @@ from urllib.parse import urlparse
 # TODO: Fix shaderc-combined: it's too large... unity-builds for spirv-opt?
 # TODO: better printing for conan command
 # TODO: autoclear when package configuration changed? we could store keys and compare them
+# TODO: inconsistent sys.exit(1) / raise
+# TODO: cleaner way to construct CMakeRecipe
+# TODO: option to extract package dependency graph for building workflows; Currently packages are
+#       basically built multiple times in different workflows if there are dependencies between them
 
 # =================================================================================================
 # region                                  Common functions
@@ -564,6 +568,15 @@ class CMakeRecipeBuild:
             if key not in self.cmake_options:
                 self.cmake_options[key] = value
 
+    def dir_suffix(self) -> str:
+        return self.build_type + (f"_{self.build_suffix}" if self.build_suffix else "")
+
+    def build_dir(self, package_build_dir: str) -> str:
+        return os.path.join(package_build_dir, f"build_{self.dir_suffix()}")
+
+    def install_dir(self, package_build_dir: str) -> str:
+        return os.path.join(package_build_dir, f"install_{self.dir_suffix()}")
+
 
 @dataclass
 class CMakeRecipe:
@@ -597,7 +610,7 @@ class CMakeRecipe:
         after_checkout_commands = json.get("after-checkout-commands", [])
         _validate_list_type("cmake-recipe.after-checkout-commands", after_checkout_commands, str)
         cmakelists_dir = json.get("cmakelists-dir", ".")
-        _validate_pattern("relative_path", "cmake-recipe.cmake-source-dir", [cmakelists_dir])
+        _validate_pattern("relative_path", "cmake-recipe.cmakelists-dir", [cmakelists_dir])
 
         default_build = CMakeRecipeBuild.parse(json, "")
         json_builds = json.get("builds", {})
@@ -652,6 +665,22 @@ class DependenciesJson:
     package_caches: list[PackageCache] = field(default_factory=list)
     conan_recipes: list[ConanRecipe] = field(default_factory=list)
     cmake_recipes: list[CMakeRecipe] = field(default_factory=list)
+    dependency_graph: dict[str, list[str]] = field(default_factory=dict)
+
+    @staticmethod
+    def _parse_dependency_graph(json_graph) -> dict[str, list[str]]:
+        _validate_dict_type("dependency-graph", json_graph, str, list)
+        _validate_pattern("package_name", "dependency-graph keys", list(json_graph.keys()))
+        for name, dep_names in json_graph.items():
+            _validate_list_type(f"dependency-graph.{name}", dep_names, str)
+            _validate_pattern("package_name", f"dependency-graph.{name}", dep_names)
+        return {name: list(dep_names) for name, dep_names in json_graph.items()}
+
+    @staticmethod
+    def _merge_dependency_graph(dst: dict[str, list[str]], src: dict[str, list[str]]):
+        for name, dep_names in src.items():
+            dst_dep_names = dst.setdefault(name, [])
+            dst_dep_names.extend(d for d in dep_names if d not in dst_dep_names)
 
     @staticmethod
     def parse(file_path: str, depth=0) -> "DependenciesJson":
@@ -670,6 +699,9 @@ class DependenciesJson:
         package_caches = [PackageCache.parse(js) for js in json_package_caches]
         conan_recipes = [ConanRecipe.parse(js) for js in json_conan_recipes]
         cmake_recipes = [CMakeRecipe.parse(js, dir_path) for js in json_cmake_recipes]
+        dependency_graph = DependenciesJson._parse_dependency_graph(
+            json_root.get("dependency-graph", {})
+        )
 
         json_includes = json_root.get("includes", [])
         _validate_list_type("includes", json_includes, str)
@@ -682,9 +714,14 @@ class DependenciesJson:
             package_caches.extend(included_deps.package_caches)
             conan_recipes.extend(included_deps.conan_recipes)
             cmake_recipes.extend(included_deps.cmake_recipes)
+            DependenciesJson._merge_dependency_graph(
+                dependency_graph, included_deps.dependency_graph
+            )
 
         deps = sorted(set(deps))
-        return DependenciesJson(deps, package_caches, conan_recipes, cmake_recipes)
+        return DependenciesJson(
+            deps, package_caches, conan_recipes, cmake_recipes, dependency_graph
+        )
 
 
 # =================================================================================================
@@ -752,6 +789,28 @@ def get_buildable_package_names(deps: DependenciesJson, platform: str) -> list[s
     return list(set(names))
 
 
+def resolve_required_packages(deps: DependenciesJson, packages: list[str]) -> list[str]:
+    """Returns given packages together with all of their (transitive) dependencies from
+    dependency-graph. Each package is placed after all of the packages it depends on."""
+    ordered = []
+    visiting = set()
+
+    def visit(name: str):
+        if name in ordered:
+            return
+        if name in visiting:
+            raise ValueError(f"Cyclic dependency-graph involving package: '{name}'")
+        visiting.add(name)
+        for dep_name in deps.dependency_graph.get(name, []):
+            visit(dep_name)
+        visiting.remove(name)
+        ordered.append(name)
+
+    for name in packages:
+        visit(name)
+    return ordered
+
+
 def build_package(
     deps: DependenciesJson,
     name: str,
@@ -789,7 +848,7 @@ def build_package(
     if cmake_recipe:
         print(f"Building from cmake recipe: {stylize_text(name, Color.DEFAULT, Style.BOLD)}")
         print(f"  Version: {cmake_recipe.version}")
-        build_cmake_package(cmake_recipe, target_dir, build_dir, options)
+        build_cmake_package(deps, cmake_recipe, target_dir, build_dir, options)
         print()
         return cmake_recipe.version
 
@@ -996,10 +1055,17 @@ def configure_cmake_package(
     source_dir: str,
     build_dir: str,
     install_dir: str,
+    prefix_paths: list[str] | None = None,
 ):
     os.makedirs(build_dir, exist_ok=True)
+    cmake_options = dict(cmake_build.cmake_options)
+    if prefix_paths:
+        if "CMAKE_PREFIX_PATH" in cmake_options:
+            prefix_paths.append(cmake_options["CMAKE_PREFIX_PATH"])
+        cmake_options["CMAKE_PREFIX_PATH"] = ";".join(prefix_paths)
+
     cmake_cmd = ["cmake", "-S", source_dir, "-DCMAKE_INSTALL_PREFIX=" + install_dir]
-    cmake_cmd += [f"-D{key}={value}" for key, value in cmake_build.cmake_options.items()]
+    cmake_cmd += [f"-D{key}={value}" for key, value in cmake_options.items()]
     cmake_cmd += [f"-DCMAKE_BUILD_TYPE={cmake_build.build_type}"]
     cmake_cmd += generator_options(options.generator, options.build_platform_info)
 
@@ -1007,8 +1073,45 @@ def configure_cmake_package(
     subprocess.run(cmake_cmd, cwd=build_dir, env=options.build_environment(), check=True)
 
 
+def find_package_install_dir(
+    deps: DependenciesJson, name: str, build: CMakeRecipeBuild, deps_build_dir: str
+) -> str:
+    platform = build.platform or current_platform()
+    cmake_recipe = find_cmake_recipe(deps, name, platform)
+    if cmake_recipe:
+        # CMake packages are built in: <deps_build_dir>/<package>/
+        pkg_builds = cmake_recipe.get_builds(platform)
+        matching = [b for b in pkg_builds if b.dir_suffix() == build.dir_suffix()]
+        matching = matching or [b for b in pkg_builds if b.build_type == build.build_type]
+        pkg_build = (matching or pkg_builds)[0]
+        install_dir = pkg_build.install_dir(os.path.join(deps_build_dir, name))
+        if not os.path.isdir(install_dir):
+            print_error(f"Package '{name}' is not built (missing: {install_dir})")
+            sys.exit(1)
+        return install_dir
+
+    conan_recipe = find_conan_recipe(deps, name, platform)
+    if conan_recipe:
+        # Conan packages are used directly from conan cache.
+        packages = conan_list_local_packages(conan_recipe, platform)
+        if not packages:
+            print_error(
+                f"Package '{name}' is not available in local conan cache: "
+                f"{conan_recipe.reference()}"
+            )
+            sys.exit(1)
+        return conan_get_package_path(conan_get_best_package(packages))
+
+    print_error(f"Package '{name}' has no recipe for: {platform}")
+    sys.exit(1)
+
+
 def build_cmake_package(
-    recipe: CMakeRecipe, target_dir: str, build_dir: str, options: BuildOptions
+    deps: DependenciesJson,
+    recipe: CMakeRecipe,
+    target_dir: str,
+    build_dir: str,
+    options: BuildOptions,
 ):
     print_title(f"Building CMake package: {recipe.name}", Color.DEFAULT, Style.BOLD)
 
@@ -1041,16 +1144,25 @@ def build_cmake_package(
     num_threads = os.cpu_count() * 2
     jobs_argument = [f"-j{num_threads}"] if num_threads > 1 else []
 
+    # Dependencies are built in sibling directories: build/dependencies/<package>/
+    deps_build_dir = os.path.dirname(os.path.abspath(build_dir))
+    sub_dependencies = resolve_required_packages(deps, deps.dependency_graph.get(recipe.name, []))
+
     for build in recipe.get_builds(current_platform()):
         print_step(f"Configuring build: {build.full_name}")
-        build_suffix = build.build_type + (f"_{build.build_suffix}" if build.build_suffix else "")
-        build_sub_dir = os.path.join(build_dir, f"build_{build_suffix}")
-        install_sub_dir = os.path.join(build_dir, f"install_{build_suffix}")
+        build_sub_dir = build.build_dir(build_dir)
+        install_sub_dir = build.install_dir(build_dir)
+        prefix_paths = [
+            find_package_install_dir(deps, dep_name, build, deps_build_dir)
+            for dep_name in sub_dependencies
+        ]
 
         prepare_dir(build_sub_dir, options.clean_build, False)
         prepare_dir(install_sub_dir, True, False)
 
-        configure_cmake_package(build, options, cmakelists_dir, build_sub_dir, install_sub_dir)
+        configure_cmake_package(
+            build, options, cmakelists_dir, build_sub_dir, install_sub_dir, prefix_paths
+        )
 
         print_step(f"Running build: {build.full_name}")
         build_cmd = ["cmake", "--build", ".", "--config", build.build_type, "--target", "install"]
@@ -1314,8 +1426,10 @@ def dependencies_main(args: argparse.Namespace):
     downloadable_deps = get_cached_package_names(deps_json, platform)
     buildable_deps = get_buildable_package_names(deps_json, platform)
     selected_deps = args.dependencies or deps_json.dependencies
-    available_deps = downloadable_deps if args.command == "download" else buildable_deps
-    unavailable_deps = [dep for dep in selected_deps if dep not in available_deps]
+    # Selected packages together with all packages required to build them, in build order
+    required_deps = resolve_required_packages(deps_json, selected_deps)
+    available_deps = downloadable_deps if args.command == "download-deps" else buildable_deps
+    unavailable_deps = [dep for dep in required_deps if dep not in available_deps]
     if unavailable_deps:
         print_error(f"The following requested dependencies are not available: {unavailable_deps}")
         sys.exit(1)
@@ -1329,7 +1443,7 @@ def dependencies_main(args: argparse.Namespace):
             args.clean = True
 
         prepare_target_dir(deps_dir, args.clean)
-        for dep in selected_deps:
+        for dep in required_deps:
             download_package(deps_json, dep, deps_dir)
 
     elif args.command == "build-deps":
@@ -1338,7 +1452,7 @@ def dependencies_main(args: argparse.Namespace):
         build_options = BuildOptions.initialize(args)
 
         prepare_target_dir(deps_dir, args.clean)
-        for dep in selected_deps:
+        for dep in required_deps:
             package_build_dir = os.path.join(build_dir, dep)
             build_package(deps_json, dep, deps_dir, package_build_dir, build_options)
 
@@ -1349,13 +1463,15 @@ def dependencies_main(args: argparse.Namespace):
 
         prepare_dir(deps_dir, args.clean)
         download_strings = []
-        for dep in selected_deps:
+        for dep in required_deps:
             package_build_dir = os.path.join(build_dir, dep)
             package_target_dir = os.path.join(package_build_dir, "package")
             prepare_dir(package_target_dir, True, False)
             version = build_package(
                 deps_json, dep, package_target_dir, package_build_dir, build_options
             )
+            if dep not in selected_deps:
+                continue
             zip_file_base = f"{dep}_{version}"
             zip_path = zip_directory(package_target_dir, os.path.join(deps_dir, zip_file_base))
             hash = compute_sha256_64(zip_path)
