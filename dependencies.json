@@ -153,6 +153,8 @@
       "source-sha1": "69b2604fc76e370615438bdc8d2cd95b9349c12e",
       "cmake-options": {
         "OPENEXR_FORCE_INTERNAL_IMATH": "on",
+        "OPENEXR_LIB_SUFFIX": "",
+        "IMATH_LIB_SUFFIX": "",
         "BUILD_SHARED_LIBS": "off",
         "OPENEXR_BUILD_EXAMPLES": "off",
         "BUILD_TESTING": "off"
