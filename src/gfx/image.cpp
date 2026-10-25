@@ -20,6 +20,9 @@ namespace fwk {
 
 namespace detail {
 	Ex<Image> loadSTBI(Stream &);
+#ifdef FWK_EXR_ENABLED
+	Ex<Image> loadEXR(Stream &);
+#endif
 }
 
 Image::Image(int2 size, VColorFormat format)
@@ -70,7 +73,16 @@ Ex<Image> Image::load(ZStr file_name, Maybe<ImageFileType> type) {
 	return FWK_ERROR("File '%' has no extension: don't know which loader to use", file_name);
 }
 
-Ex<Image> Image::load(Stream &sr, ImageFileType type) { return detail::loadSTBI(sr); }
+Ex<Image> Image::load(Stream &sr, ImageFileType type) {
+	if(type == ImageFileType::exr) {
+#ifdef FWK_EXR_ENABLED
+		return detail::loadEXR(sr);
+#else
+		return FWK_ERROR("EXR support is disabled (libfwk has to be built with FWK_EXR=ON)");
+#endif
+	}
+	return detail::loadSTBI(sr);
+}
 
 Ex<Image> Image::load(Stream &sr, Str extension) {
 	string ext = toLower(extension);
