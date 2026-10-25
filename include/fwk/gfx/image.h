@@ -12,7 +12,7 @@
 
 namespace fwk {
 
-DEFINE_ENUM(ImageFileType, tga, png, bmp, jpg, gif, pgm, ppm);
+DEFINE_ENUM(ImageFileType, tga, png, bmp, jpg, gif, pgm, ppm, exr);
 DEFINE_ENUM(ImageRescaleOpt, srgb, premultiplied_alpha);
 using ImageRescaleOpts = EnumFlags<ImageRescaleOpt>;
 

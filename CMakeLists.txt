@@ -23,6 +23,7 @@ option(FWK_BUILD_TOOLS "Enable building of tools" ON)
 option(FWK_UNITY_BUILD "Enable unity builds for faster compilation" OFF)
 
 option(FWK_GEOM "Enable geometry module" ON)
+option(FWK_EXR "Enable loading & saving of EXR images (requires OpenEXR)" OFF)
 
 set(FWK_DEPENDENCIES_DIR "${CMAKE_CURRENT_SOURCE_DIR}/dependencies" CACHE PATH
 	"Directory containing libfwk dependencies")
@@ -43,6 +44,7 @@ message(STATUS "FWK: Build tests = ${FWK_BUILD_TESTS}")
 message(STATUS "FWK: Build tools = ${FWK_BUILD_TOOLS}")
 message(STATUS "FWK: Unity build = ${FWK_UNITY_BUILD}")
 message(STATUS "FWK: Enable geometry module = ${FWK_GEOM}")
+message(STATUS "FWK: Enable EXR support = ${FWK_EXR}")
 message(STATUS "FWK: Enable ImGui support = ${FWK_IMGUI}")
 message(STATUS "FWK: Dependencies dir = ${FWK_DEPENDENCIES_DIR}")
 
@@ -369,6 +371,10 @@ set(SRC_gfx
 	gfx/shader_reflection.cpp
 )
 
+if(FWK_EXR)
+	list(APPEND SRC_gfx gfx/image_exr.cpp)
+endif()
+
 set(SRC_gfx_font
 	gfx/font.cpp
 	gfx/font_factory.cpp
@@ -569,6 +575,17 @@ if(WIN32)
 else()
 	target_link_libraries(libfwk SDL3 shaderc-combined freetype z)
 	set_target_properties(libfwk PROPERTIES  OUTPUT_NAME "fwk")
+endif()
+
+if(FWK_EXR)
+	target_compile_definitions(libfwk PUBLIC FWK_EXR_ENABLED)
+	target_include_directories(libfwk PRIVATE ${FWK_DEPENDENCIES_DIR}/include/OpenEXR)
+	if(WIN32)
+		set(_FWK_DYNAMIC_SUFFIX "$<$<NOT:$<CONFIG:Release>>:-dynamic>")
+		target_link_libraries(libfwk OpenEXRCore${_FWK_DYNAMIC_SUFFIX} zstd${_FWK_DYNAMIC_SUFFIX})
+	else()
+		target_link_libraries(libfwk OpenEXRCore zstd)
+	endif()
 endif()
 
 if (CMAKE_GENERATOR MATCHES "Visual Studio")
