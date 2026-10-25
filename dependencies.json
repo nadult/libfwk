@@ -10,7 +10,7 @@
     "zlib"
   ],
   "dependency-graph": {
-    "openexr": [ "zstd" ]
+    "openexr-core": [ "zstd" ]
   },
   "package-caches": [
     {
@@ -128,7 +128,8 @@
       "cmake-options": {
         "ZSTD_BUILD_STATIC": "on",
         "ZSTD_BUILD_SHARED": "off",
-        "ZSTD_BUILD_TESTS": "off"
+        "ZSTD_BUILD_TESTS": "off",
+        "ZSTD_BUILD_PROGRAMS": "off"
       },
       "cmakelists-dir": "build/cmake",
       "builds": {
@@ -136,6 +137,16 @@
           "install-files": [
             "include/.*",
             "lib/zstd_static.lib:lib/zstd.lib"
+          ]
+        },
+        "windows:release:dynamic": {
+          "cmake-options": {
+            "ZSTD_BUILD_STATIC": "off",
+            "ZSTD_BUILD_SHARED": "on"
+          },
+          "install-files": [
+            "lib/zstd.lib:lib/zstd-dynamic.lib",
+            "bin/zstd.dll"
           ]
         },
         "linux:release:": {
@@ -147,23 +158,43 @@
       }
     },
     {
-      "package": "openexr:3.5.2",
+      "package": "openexr-core:3.5.2",
       "github-project": "AcademySoftwareFoundation/openexr",
       "source-branch": "v3.5.2",
       "source-sha1": "69b2604fc76e370615438bdc8d2cd95b9349c12e",
       "cmake-options": {
         "OPENEXR_FORCE_INTERNAL_IMATH": "on",
         "OPENEXR_LIB_SUFFIX": "",
+        "OPENEXR_BUILD_TOOLS": "off",
+        "OPENEXR_INSTALL_TOOLS": "off",
+        "OPENEXR_BUILD_EXAMPLES": "off",
         "IMATH_LIB_SUFFIX": "",
         "BUILD_SHARED_LIBS": "off",
-        "OPENEXR_BUILD_EXAMPLES": "off",
         "BUILD_TESTING": "off"
       },
-      "install-files": [
-        "include/.*",
-        "lib/.*\\.lib",
-        "lib/.*\\.a"
-      ]
+      "builds": {
+        "windows:release:": {
+          "install-files": [
+            "include/*\\.*",
+            "lib/OpenEXRCore\\.lib"
+          ]
+        },
+        "windows:release:dynamic": {
+          "cmake-options": {
+            "BUILD_SHARED_LIBS": "on"
+          },
+          "install-files": [
+            "lib/OpenEXRCore.lib:lib/OpenEXRCore-dynamic.lib",
+            "bin/OpenEXRCore\\.dll"
+          ]
+        },
+        "linux:release:": {
+          "install-files": [
+            "include/*\\.*",
+            "lib/libOpenEXRCore\\.a"
+          ]
+        }
+      }
     },
     {
       "package": "shaderc-combined:2025.4",
