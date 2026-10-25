@@ -57,7 +57,11 @@ locally with `build-deps` command. It will additionally require installing conan
 
 ### Dependencies
 
-* **freetype2**
+By default all libraries are linked statically. The only exception is, when bulding for Windows in
+debug mode, where some libraries are linked dynamically. This avoids problems with linking against
+MSVC's debug standard library and improves linking performance.
+
+* **freetype2**  
 	Used under the "FreeType License".  
 	[http://www.freetype.org/](http://www.freetype.org/)
 
@@ -69,15 +73,15 @@ locally with `build-deps` command. It will additionally require installing conan
 	Included in extern/rapidxml/, used under BSL 1.0.  
 	[http://rapidxml.sourceforge.net/](http://rapidxml.sourceforge.net/)
 
-* **boost::polygon::voronoi**   
+* **boost::polygon::voronoi**  
     Included in extern/boost_polygon/, used under BSL 1.0.  
 	[http://www.boost.org/](http://www.boost.org/)
 
-* **Volk**   
+* **Volk**  
     Included in extern/volk/, used under MIT license.  
 	[https://github.com/zeux/volk](https://github.com/zeux/volk)
 
-* **SDL3**
+* **SDL3**  
     Used under ZLIB license.  
 	[https://www.libsdl.org/](https://www.libsdl.org/)	
 
@@ -96,6 +100,15 @@ locally with `build-deps` command. It will additionally require installing conan
 	[https://xiph.org/ogg/](https://xiph.org/ogg/)  
 	[https://xiph.org/vorbis/](https://xiph.org/vorbis/)
 
+* **openexr-core (optional)**  
+	Used under BSD 3-clause license.  
+	Required for loading & saving EXR images (enabled with FWK_EXR CMake option).  
+	[https://github.com/AcademySoftwareFoundation/openexr](https://github.com/AcademySoftwareFoundation/openexr)
+
+* **zstd (optional)**  
+	Used under BSD license.  
+	[https://github.com/facebook/zstd](https://github.com/facebook/zstd)
+
 * **OpenAL Soft (optional)**  
 	[https://github.com/kcat/openal-soft](https://github.com/kcat/openal-soft)
 
@@ -104,7 +117,7 @@ locally with `build-deps` command. It will additionally require installing conan
 	Menu module & perf::Analyzer will only be compiled if imgui is present.  
 	[https://github.com/ocornut/imgui](https://github.com/ocornut/imgui)
 
-* **libdwarf (optional, linux-only)**
+* **libdwarf (optional, linux-only)**  
 
 ## License
 
