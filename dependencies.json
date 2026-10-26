@@ -3,11 +3,13 @@
     "freetype",
     "ogg",
     "openal-soft",
+    "openexr-core",
     "sdl",
-    "shaderc-combined",
+    "shaderc",
     "vorbis",
     "vulkan-headers",
-    "zlib"
+    "zlib",
+    "zstd"
   ],
   "dependency-graph": {
     "openexr-core": [ "zstd" ]
@@ -22,11 +24,13 @@
         "freetype:2.14.1:e52c36f64541d1c4",
         "ogg:1.3.5:ba627248ca9bd00a",
         "openal-soft:1.23.1:07970ee1340e436b",
+        "openexr-core:3.5.2:8383d872bd4117ac",
         "sdl:3.2.24:10fac47a826d3ada",
-        "shaderc-combined:2025.4:20b9214108dc9ed7",
+        "shaderc:2026.4:0e4b421bf08d2c0f",
         "vorbis:1.3.7:13cfaa45fb57c387",
         "vulkan-headers:1.3.236.0:53b1434962d5432d",
-        "zlib:1.3.1:854141dddc517af1"
+        "zlib:1.3.1:854141dddc517af1",
+        "zstd:1.5.7:9f5aeadf613a8de0"
       ]
     },
     {
@@ -38,11 +42,13 @@
         "freetype:2.14.1:54e2526fc3c9e34d",
         "ogg:1.3.5:34daa9c6b936f0ed",
         "openal-soft:1.23.1:ad826bc7e12db033",
+        "openexr-core:3.5.2:285f23c90190c6b2",
         "sdl:3.2.24:1e19c9558c2362ab",
-        "shaderc-combined:2025.4:d2f4cc91840ab132",
+        "shaderc:2026.4:ccea188d5873f98b",
         "vorbis:1.3.7:586d85e1e8c9f58c",
         "vulkan-headers:1.3.236.0:95592c0d2bf6ca07",
-        "zlib:1.3.1:08d78099e6a271b3"
+        "zlib:1.3.1:08d78099e6a271b3",
+        "zstd:1.5.7:428fcf7aaa695a5e"
       ]
     }
   ],
@@ -139,13 +145,13 @@
             "lib/zstd_static.lib:lib/zstd.lib"
           ]
         },
-        "windows:release:dynamic": {
+        "windows:release:shared": {
           "cmake-options": {
             "ZSTD_BUILD_STATIC": "off",
             "ZSTD_BUILD_SHARED": "on"
           },
           "install-files": [
-            "lib/zstd.lib:lib/zstd-dynamic.lib",
+            "lib/zstd.lib:lib/zstd-shared.lib",
             "bin/zstd.dll"
           ]
         },
@@ -175,35 +181,32 @@
       "builds": {
         "windows:release:": {
           "install-files": [
-            "include/*\\.*",
+            "include/.*\\.*",
             "lib/OpenEXRCore\\.lib"
           ]
         },
-        "windows:release:dynamic": {
+        "windows:release:shared": {
           "cmake-options": {
             "BUILD_SHARED_LIBS": "on"
           },
           "install-files": [
-            "lib/OpenEXRCore.lib:lib/OpenEXRCore-dynamic.lib",
+            "lib/OpenEXRCore.lib:lib/OpenEXRCore-shared.lib",
             "bin/OpenEXRCore\\.dll"
           ]
         },
         "linux:release:": {
           "install-files": [
-            "include/*\\.*",
+            "include/.*\\.*",
             "lib/libOpenEXRCore\\.a"
           ]
         }
       }
     },
     {
-      "package": "shaderc-combined:2025.4",
+      "package": "shaderc:2026.4",
       "github-project": "google/shaderc",
-      "source-branch": "v2025.4",
-      "source-sha1": "73743588fe9c39f2f1c780a087d94afac691a189",
-      "source-patches": [
-        "extern/patches/shaderc-combined.patch"
-      ],
+      "source-branch": "v2026.4",
+      "source-sha1": "b64fd42c4a2a9d501c47aca5d3571f7673a5e9cc",
       "after-checkout-commands": [
         "python ./utils/git-sync-deps"
       ],
@@ -211,27 +214,23 @@
         "SHADERC_SKIP_TESTS": "on",
         "SHADERC_SKIP_EXAMPLES": "on",
         "SHADERC_SKIP_EXECUTABLES": "on",
+        "SHADERC_SKIP_COPYRIGHT_CHECK": "on",
+        "SHADERC_ENABLE_HLSL": "off",
+        "SHADERC_ENABLE_WGSL_OUTPUT": "off",
         "SHADERC_ENABLE_SHARED_CRT": "on",
         "SKIP_SPIRV_TOOLS_INSTALL": "on",
         "SPIRV_SKIP_EXECUTABLES": "on",
         "SPIRV_SKIP_TESTS": "on",
         "SPIRV_TOOLS_BUILD_STATIC": "on",
-        "BUILD_SHARED_LIBS": "off",
-        "ENABLE_GLSLANG_BINARIES": "off"
+        "BUILD_SHARED_LIBS": "off"
       },
       "builds": {
-        "windows:release:md": {
+        "windows:release:": {
           "install-files": [
+            "bin/shaderc_shared\\.dll",
             "include/.*",
-            "lib/shaderc_combined.lib:lib/shaderc-combined-md.lib"
-          ]
-        },
-        "windows:release:mdd": {
-          "cmake-options": {
-            "SHADERC_ENABLE_SHARED_DEBUG_CRT": "on"
-          },
-          "install-files": [
-            "lib/shaderc_combined.lib:lib/shaderc-combined-mdd.lib"
+            "lib/shaderc_combined.lib:lib/shaderc-combined.lib",
+            "lib/shaderc_shared.lib:lib/shaderc-shared.lib"
           ]
         },
         "linux:release:": {
