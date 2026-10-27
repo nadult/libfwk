@@ -599,12 +599,12 @@ if(FWK_EXR)
 	target_compile_definitions(libfwk PUBLIC FWK_EXR_ENABLED)
 	target_include_directories(libfwk PRIVATE ${FWK_DEPENDENCIES_DIR}/include/OpenEXR)
 	if(WIN32)
-		fwk_add_imported_dll(OpenEXRCore-dynamic OpenEXRCore.dll OpenEXRCore-dynamic.lib)
-		fwk_add_imported_dll(zstd-dynamic zstd.dll zstd-dynamic.lib)
+		fwk_add_imported_dll(OpenEXRCore-shared OpenEXRCore.dll OpenEXRCore-shared.lib)
+		fwk_add_imported_dll(zstd-shared zstd.dll zstd-shared.lib)
 
 		target_link_libraries(libfwk
-			$<IF:$<CONFIG:Release>,OpenEXRCore,OpenEXRCore-dynamic>
-			$<IF:$<CONFIG:Release>,zstd,zstd-dynamic>)
+			$<IF:$<CONFIG:Release>,OpenEXRCore,OpenEXRCore-shared>
+			$<IF:$<CONFIG:Release>,zstd,zstd-shared>)
 	else()
 		target_link_libraries(libfwk OpenEXRCore zstd)
 	endif()
