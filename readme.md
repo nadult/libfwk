@@ -61,63 +61,28 @@ By default all libraries are linked statically. The only exception is, when buld
 debug mode, where some libraries are linked dynamically. This avoids problems with linking against
 MSVC's debug standard library and improves linking performance.
 
-* **freetype2**  
-	Used under the "FreeType License".  
-	[http://www.freetype.org/](http://www.freetype.org/)
-
-* **STB\_image && STB\_dxt && STB\_image\_resize**  
-    Included in extern/stb_*.h files, used under MIT license.  
-    [https://github.com/nothings/stb](https://github.com/nothings/stb)
-
-* **rapidxml**  
-	Included in extern/rapidxml/, used under BSL 1.0.  
-	[http://rapidxml.sourceforge.net/](http://rapidxml.sourceforge.net/)
-
-* **boost::polygon::voronoi**  
-    Included in extern/boost_polygon/, used under BSL 1.0.  
-	[http://www.boost.org/](http://www.boost.org/)
-
-* **Volk**  
-    Included in extern/volk/, used under MIT license.  
-	[https://github.com/zeux/volk](https://github.com/zeux/volk)
-
-* **SDL3**  
-    Used under ZLIB license.  
-	[https://www.libsdl.org/](https://www.libsdl.org/)	
-
-* **Vulkan headers**  
-    Used under MIT license.  
-	[https://github.com/KhronosGroup/Vulkan-Headers](https://github.com/KhronosGroup/Vulkan-Headers)
-
-* **shaderc**  
-    Used under Apache license.  
-	[https://github.com/google/shaderc](https://github.com/google/shaderc)
-
-* **zlib**  
-    Used under ZLIB license.  
-
-* **libogg, libvorbis (optional)**  
-	[https://xiph.org/ogg/](https://xiph.org/ogg/)  
-	[https://xiph.org/vorbis/](https://xiph.org/vorbis/)
-
-* **openexr-core (optional)**  
-	Used under BSD 3-clause license.  
-	Required for loading & saving EXR images (enabled with FWK_EXR CMake option).  
-	[https://github.com/AcademySoftwareFoundation/openexr](https://github.com/AcademySoftwareFoundation/openexr)
-
-* **zstd (optional)**  
-	Used under BSD license.  
-	[https://github.com/facebook/zstd](https://github.com/facebook/zstd)
-
-* **OpenAL Soft (optional)**  
-	[https://github.com/kcat/openal-soft](https://github.com/kcat/openal-soft)
-
-* **dear imgui (optional)**  
-	Included as a git submodule in extern/imgui/, used under MIT license.  
-	Menu module & perf::Analyzer will only be compiled if imgui is present.  
-	[https://github.com/ocornut/imgui](https://github.com/ocornut/imgui)
-
-* **libdwarf (optional, linux-only)**  
+<table>
+<tr><th>Library</th><th>License</th><th>Notes</th></tr>
+<tr><td colspan="3"><b>Required:</b></td></tr>
+<tr><td><a href="http://www.freetype.org/">freetype2</a></td><td>FreeType License</td><td></td></tr>
+<tr><td><a href="https://www.libsdl.org/">SDL3</a></td><td>ZLIB</td><td></td></tr>
+<tr><td><a href="https://github.com/KhronosGroup/Vulkan-Headers">Vulkan headers</a></td><td>MIT</td><td></td></tr>
+<tr><td><a href="https://github.com/google/shaderc">shaderc</a></td><td>Apache 2.0</td><td></td></tr>
+<tr><td><a href="https://zlib.net/">zlib</a></td><td>ZLIB</td><td></td></tr>
+<tr><td colspan="3"><b>Required (included in extern/):</b></td></tr>
+<tr><td><a href="https://github.com/nothings/stb">STB_image, STB_dxt, STB_image_resize</a></td><td>MIT</td><td>extern/stb_*.h</td></tr>
+<tr><td><a href="http://rapidxml.sourceforge.net/">rapidxml</a></td><td>BSL 1.0</td><td>extern/rapidxml/</td></tr>
+<tr><td><a href="http://www.boost.org/">boost::polygon::voronoi</a></td><td>BSL 1.0</td><td>extern/boost_polygon/</td></tr>
+<tr><td><a href="https://github.com/zeux/volk">Volk</a></td><td>MIT</td><td>extern/volk/</td></tr>
+<tr><td colspan="3"><b>Optional:</b></td></tr>
+<tr><td><a href="https://xiph.org/ogg/">libogg</a>, <a href="https://xiph.org/vorbis/">libvorbis</a></td><td>BSD 3-clause</td><td></td></tr>
+<tr><td><a href="https://github.com/kcat/openal-soft">OpenAL Soft</a></td><td>LGPL 2.0</td><td></td></tr>
+<tr><td><a href="https://github.com/AcademySoftwareFoundation/openexr">openexr-core</a></td><td>BSD 3-clause</td><td>Loading & saving EXR images (enabled with FWK_EXR CMake option)</td></tr>
+<tr><td><a href="https://github.com/facebook/zstd">zstd</a></td><td>BSD</td><td>Required by openexr-core</td></tr>
+<tr><td><a href="https://github.com/ebiggers/libdeflate">libdeflate</a></td><td>MIT</td><td>Required by openexr-core</td></tr>
+<tr><td><a href="https://github.com/ocornut/imgui">dear imgui</a></td><td>MIT</td><td>Git submodule in extern/imgui/; Menu module & perf::Analyzer are only compiled if present</td></tr>
+<tr><td><a href="https://github.com/davea42/libdwarf-code">libdwarf</a></td><td>LGPL 2.1</td><td>Linux only</td></tr>
+</table>
 
 ## License
 
