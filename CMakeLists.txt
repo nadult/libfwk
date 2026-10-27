@@ -99,6 +99,23 @@ endif()
 # region 				                 Utility functions
 # =================================================================================================
 
+function(fwk_add_imported_dll TARGET_NAME DLL_NAME IMPLIB_NAME)
+	add_library(${TARGET_NAME} SHARED IMPORTED)
+	set_target_properties(${TARGET_NAME} PROPERTIES
+		IMPORTED_LOCATION "${FWK_DEPENDENCIES_DIR}/bin/${DLL_NAME}"
+		IMPORTED_IMPLIB "${FWK_DEPENDENCIES_DIR}/lib/${IMPLIB_NAME}")
+endfunction()
+
+function(copy_runtime_dlls target)
+	if(WIN32)
+		set(dlls "$<TARGET_RUNTIME_DLLS:${target}>")
+		set(copy_cmd "$<IF:$<BOOL:${dlls}>,copy_if_different,true>")
+		add_custom_command(TARGET ${target} POST_BUILD
+			COMMAND ${CMAKE_COMMAND} -E ${copy_cmd} ${dlls} "$<TARGET_FILE_DIR:${target}>"
+			COMMAND_EXPAND_LISTS)
+	endif()
+endfunction()
+
 function(fwk_add_program GROUP NAME)
 	set(_SOURCES "${GROUP}/${NAME}.cpp")
 	list(TRANSFORM _SOURCES PREPEND "src/")
@@ -109,6 +126,7 @@ function(fwk_add_program GROUP NAME)
 	set_target_properties(${TARGET_NAME} PROPERTIES
 		RUNTIME_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/$<CONFIG>/${GROUP}")
 	set_target_properties(${TARGET_NAME} PROPERTIES RUNTIME_OUTPUT_NAME "${NAME}")
+	copy_runtime_dlls(${TARGET_NAME})
 endfunction()
 
 function(fwk_add_module TARGET_NAME MODULE_NAME)
@@ -568,10 +586,10 @@ target_link_directories(libfwk
 
 
 if(WIN32)
+	fwk_add_imported_dll(shaderc-shared shaderc_shared.dll shaderc-shared.lib)
 	target_link_libraries(libfwk
-		SDL3 dbghelp winmm version setupapi dwrite Imm32
-		freetype zlib
-		shaderc-combined-$<IF:$<CONFIG:Release>,md,mdd>)
+		SDL3 dbghelp winmm version setupapi dwrite Imm32 freetype zlib
+		$<IF:$<CONFIG:Release>,shaderc-combined,shaderc-shared>)
 else()
 	target_link_libraries(libfwk SDL3 shaderc-combined freetype z)
 	set_target_properties(libfwk PROPERTIES  OUTPUT_NAME "fwk")
@@ -581,8 +599,12 @@ if(FWK_EXR)
 	target_compile_definitions(libfwk PUBLIC FWK_EXR_ENABLED)
 	target_include_directories(libfwk PRIVATE ${FWK_DEPENDENCIES_DIR}/include/OpenEXR)
 	if(WIN32)
-		set(_FWK_DYNAMIC_SUFFIX "$<$<NOT:$<CONFIG:Release>>:-dynamic>")
-		target_link_libraries(libfwk OpenEXRCore${_FWK_DYNAMIC_SUFFIX} zstd${_FWK_DYNAMIC_SUFFIX})
+		fwk_add_imported_dll(OpenEXRCore-dynamic OpenEXRCore.dll OpenEXRCore-dynamic.lib)
+		fwk_add_imported_dll(zstd-dynamic zstd.dll zstd-dynamic.lib)
+
+		target_link_libraries(libfwk
+			$<IF:$<CONFIG:Release>,OpenEXRCore,OpenEXRCore-dynamic>
+			$<IF:$<CONFIG:Release>,zstd,zstd-dynamic>)
 	else()
 		target_link_libraries(libfwk OpenEXRCore zstd)
 	endif()
