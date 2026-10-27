@@ -1,6 +1,7 @@
 {
   "dependencies": [
     "freetype",
+    "libdeflate",
     "ogg",
     "openal-soft",
     "openexr-core",
@@ -12,7 +13,7 @@
     "zstd"
   ],
   "dependency-graph": {
-    "openexr-core": [ "zstd" ]
+    "openexr-core": [ "zstd", "libdeflate" ]
   },
   "package-caches": [
     {
@@ -22,9 +23,10 @@
       "packages": [
         "assimp:6.0.2:6918a06c41ec36a5",
         "freetype:2.14.1:e52c36f64541d1c4",
+        "libdeflate:1.26:d85ab60e5589381a",
         "ogg:1.3.5:ba627248ca9bd00a",
         "openal-soft:1.23.1:07970ee1340e436b",
-        "openexr-core:3.5.2:8eb1970b7bf4c153",
+        "openexr-core:3.5.2:8e21bee9b0c343b4",
         "sdl:3.2.24:10fac47a826d3ada",
         "shaderc:2026.4:0e4b421bf08d2c0f",
         "vorbis:1.3.7:13cfaa45fb57c387",
@@ -40,9 +42,10 @@
       "packages": [
         "assimp:6.0.2:2bb50da0085875c8",
         "freetype:2.14.1:54e2526fc3c9e34d",
+        "libdeflate:1.26:4db11eb677f9c7e7",
         "ogg:1.3.5:34daa9c6b936f0ed",
         "openal-soft:1.23.1:ad826bc7e12db033",
-        "openexr-core:3.5.2:285f23c90190c6b2",
+        "openexr-core:3.5.2:1c244468da24c5b4",
         "sdl:3.2.24:1e19c9558c2362ab",
         "shaderc:2026.4:ccea188d5873f98b",
         "vorbis:1.3.7:586d85e1e8c9f58c",
@@ -164,12 +167,30 @@
       }
     },
     {
+      "package": "libdeflate:1.26",
+      "github-project": "ebiggers/libdeflate",
+      "source-branch": "v1.26",
+      "source-sha1": "92e6a0db9fa848d742f9eb286c92afc60f2c3dda",
+      "cmake-options": {
+        "LIBDEFLATE_BUILD_STATIC_LIB": "on",
+        "LIBDEFLATE_BUILD_SHARED_LIB": "off",
+        "LIBDEFLATE_BUILD_GZIP": "off",
+        "LIBDEFLATE_BUILD_TESTS": "off"
+      },
+      "install-files": [
+        "include/.*",
+        "lib/deflatestatic.lib:lib/deflate.lib",
+        "lib/libdeflate.a"
+      ]
+    },
+    {
       "package": "openexr-core:3.5.2",
       "github-project": "AcademySoftwareFoundation/openexr",
       "source-branch": "v3.5.2",
       "source-sha1": "69b2604fc76e370615438bdc8d2cd95b9349c12e",
       "cmake-options": {
         "OPENEXR_FORCE_INTERNAL_IMATH": "on",
+        "OPENEXR_FORCE_INTERNAL_DEFLATE": "off",
         "OPENEXR_LIB_SUFFIX": "",
         "OPENEXR_BUILD_TOOLS": "off",
         "OPENEXR_INSTALL_TOOLS": "off",

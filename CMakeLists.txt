@@ -604,9 +604,9 @@ if(FWK_EXR)
 
 		target_link_libraries(libfwk
 			$<IF:$<CONFIG:Release>,OpenEXRCore,OpenEXRCore-shared>
-			$<IF:$<CONFIG:Release>,zstd,zstd-shared>)
+			$<IF:$<CONFIG:Release>,zstd,zstd-shared> deflate)
 	else()
-		target_link_libraries(libfwk OpenEXRCore zstd)
+		target_link_libraries(libfwk OpenEXRCore zstd deflate)
 	endif()
 endif()
 
