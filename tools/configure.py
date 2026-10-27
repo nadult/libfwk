@@ -1267,6 +1267,7 @@ def parse_arguments() -> argparse.Namespace:
 
     for sub_parser in [download_parser, build_parser, package_parser, list_parser]:
         sub_parser.add_argument(
+            "-F",
             "--deps-file",
             type=str,
             help="Path to the file with a list of packages to install. "
@@ -1308,26 +1309,17 @@ def parse_arguments() -> argparse.Namespace:
     for sub_parser in [build_parser, package_parser, configure_parser]:
         sub_parser.add_argument(
             "-G",
-            "--generator",
+            dest="generator",
             type=str,
             choices=valid_generators(),
             default=Generator.DEFAULT.value,
             help="CMake generator and compiler set to use.",
         )
-        if os.name == "nt":
-            sub_parser.add_argument(
-                "--find-vcvars", action="store_true", help="Find and print path to vcvars64.bat."
-            )
-            sub_parser.add_argument(
-                "--vs-path",
-                type=str,
-                default=None,
-                help="Path to Visual Studio installation "
-                "(optional, can be used when installed at a non-standard path).",
-            )
 
     for sub_parser in [configure_parser]:
-        sub_parser.add_argument("--build-dir", type=str, default="build")
+        sub_parser.add_argument(
+            "-B", dest="build_dir", type=str, default="build", help="Target build directory."
+        )
         sub_parser.add_argument(
             "-T",
             "--build-type",
@@ -1343,6 +1335,19 @@ def parse_arguments() -> argparse.Namespace:
             default=[],
             help="CMake definitions (can be specified multiple times).",
         )
+
+    if os.name == "nt":
+        find_vcvars_parser = sub_parsers.add_parser(
+            "find-vcvars", help="Find and print path to vcvars64.bat."
+        )
+        for sub_parser in [build_parser, package_parser, configure_parser, find_vcvars_parser]:
+            sub_parser.add_argument(
+                "--vs-path",
+                type=str,
+                default=None,
+                help="Path to Visual Studio installation "
+                "(optional, can be used when installed at a non-standard path).",
+            )
 
     download_help = (
         "Selection of packages to download. "
@@ -1370,16 +1375,13 @@ def parse_arguments() -> argparse.Namespace:
         )
 
     argv = sys.argv[1:]
-    commands = ["configure", "download-deps", "build-deps", "package-deps", "list-deps"]
-    command = len(argv) >= 1 and argv[0]
-    if command not in commands and command != "--help":
+    commands = list(sub_parsers.choices)
+    if not argv or (argv[0].startswith("-") and argv[0] not in ("-h", "--help")):
         argv = ["configure"] + argv
-    args = parser.parse_args(argv)
-
-    if not args.command:
-        args.command = "download"
-        args.dependencies = []
-    return args
+    elif argv[0] not in commands and argv[0] not in ("-h", "--help"):
+        print_error(f"Unknown command: '{argv[0]}'. Valid commands: {', '.join(commands)}")
+        sys.exit(1)
+    return parser.parse_args(argv)
 
 
 def configure_main(args: argparse.Namespace):
@@ -1411,6 +1413,12 @@ def list_deps(args: argparse.Namespace, deps_json: DependenciesJson):
         deps = {"downloadable_deps": downloadable_deps, "buildable_deps": buildable_deps}
 
     print(json.dumps(deps, indent=2))
+
+
+def find_vcvars(args: argparse.Namespace):
+    vs_path = args.vs_path or find_visual_studio_installation()
+    vcvars64_path = find_vcvars64_bat(vs_path) if vs_path else None
+    print(vcvars64_path if vcvars64_path else "vcvars64.bat not found.")
 
 
 def dependencies_main(args: argparse.Namespace):
@@ -1484,10 +1492,8 @@ def dependencies_main(args: argparse.Namespace):
 
 def main():
     args = parse_arguments()
-    if "find_vcvars" in args and args.find_vcvars and os.name == "nt":
-        vs_path = args.vs_path or find_visual_studio_installation()
-        vcvars64_path = find_vcvars64_bat(vs_path) if vs_path else None
-        print(vcvars64_path if vcvars64_path else "vcvars64.bat not found.")
+    if args.command == "find-vcvars":
+        find_vcvars(args)
     elif args.command == "configure":
         configure_main(args)
     else:
