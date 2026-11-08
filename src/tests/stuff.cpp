@@ -9,7 +9,7 @@
 #include "fwk/hash_map.h"
 #include "fwk/index_range.h"
 #include "fwk/io/file_system.h"
-#include "fwk/io/gzip_stream.h"
+#include "fwk/io/zstd_stream.h"
 #include "fwk/io/memory_stream.h"
 #include "fwk/math/box.h"
 #include "fwk/math/matrix4.h"
@@ -320,12 +320,12 @@ void testStreams() {
 		auto initial_data = data.reinterpret<char>();
 
 		double time = getTime();
-		auto compr_data = gzipCompress(initial_data).get();
+		auto compr_data = zstdCompress(initial_data).get();
 		compr_time += getTime() - time;
 		compr_bytes += compr_data.size();
 
 		time = getTime();
-		auto unpacked_data = gzipDecompress(compr_data).get();
+		auto unpacked_data = zstdDecompress(compr_data).get();
 		dec_time += getTime() - time;
 
 		ASSERT_EQ(unpacked_data, initial_data);
@@ -335,9 +335,9 @@ void testStreams() {
 	double dec_speed = double(dec_bytes) / (1024.0 * 1024.0) / dec_time;
 	double ratio = double(compr_bytes) / double(dec_bytes);
 
-	printf("Gzip   compression speed: %6.2f MB/sec (data ratio: %.0f%%)\n", compr_speed,
+	printf("Zstd   compression speed: %6.2f MB/sec (data ratio: %.0f%%)\n", compr_speed,
 		   ratio * 100.0);
-	printf("Gzip decompression speed: %6.2f MB/sec\n", dec_speed);
+	printf("Zstd decompression speed: %6.2f MB/sec\n", dec_speed);
 }
 
 void testFileSystem() {

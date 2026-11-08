@@ -245,11 +245,11 @@ template <class> class TStream;
 class BaseStream;
 class BaseFileStream;
 class BaseMemoryStream;
-class BaseGzipStream;
+class BaseZstdStream;
 using Stream = TStream<BaseStream>;
 using MemoryStream = TStream<BaseMemoryStream>;
 using FileStream = TStream<BaseFileStream>;
-class GzipStream;
+class ZstdStream;
 class FilePath;
 
 class BaseVector;
