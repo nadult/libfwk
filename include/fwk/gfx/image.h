@@ -12,7 +12,7 @@
 
 namespace fwk {
 
-DEFINE_ENUM(ImageFileType, tga, png, bmp, jpg, gif, pgm, ppm, exr);
+DEFINE_ENUM(ImageFileType, tga, png, bmp, jpg, gif, pgm, ppm, exr, ktx2);
 DEFINE_ENUM(ImageRescaleOpt, srgb, premultiplied_alpha);
 using ImageRescaleOpts = EnumFlags<ImageRescaleOpt>;
 
@@ -38,6 +38,9 @@ class Image {
 	static Ex<Image> load(Stream &, ImageFileType);
 	static Ex<Image> load(Stream &, Str extension);
 	static Ex<Image> load(FileStream &);
+
+	static Ex<vector<Image>> loadKTX2(Stream &);
+	static Ex<vector<Image>> loadKTX2(ZStr file_name);
 
 	// Supported formats: RGBA8
 	Ex<> saveTGA(Stream &) const;

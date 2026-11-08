@@ -375,6 +375,7 @@ set(SRC_gfx
 	gfx/dynamic_mesh.cpp
 	gfx/fpp_camera.cpp
 	gfx/image.cpp
+	gfx/image_ktx2.cpp
 	gfx/image_tga.cpp
 	gfx/investigate.cpp
 	gfx/investigator2.cpp
