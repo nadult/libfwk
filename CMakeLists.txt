@@ -588,11 +588,13 @@ target_link_directories(libfwk
 
 if(WIN32)
 	fwk_add_imported_dll(shaderc-shared shaderc_shared.dll shaderc-shared.lib)
+	fwk_add_imported_dll(zstd-shared zstd.dll zstd-shared.lib)
 	target_link_libraries(libfwk
 		SDL3 dbghelp winmm version setupapi dwrite Imm32 freetype zlib
-		$<IF:$<CONFIG:Release>,shaderc-combined,shaderc-shared>)
+		$<IF:$<CONFIG:Release>,shaderc-combined,shaderc-shared>
+		$<IF:$<CONFIG:Release>,zstd,zstd-shared>)
 else()
-	target_link_libraries(libfwk SDL3 shaderc-combined freetype z)
+	target_link_libraries(libfwk SDL3 shaderc-combined freetype z zstd)
 	set_target_properties(libfwk PROPERTIES  OUTPUT_NAME "fwk")
 endif()
 
@@ -601,13 +603,11 @@ if(FWK_EXR)
 	target_include_directories(libfwk PRIVATE ${FWK_DEPENDENCIES_DIR}/include/OpenEXR)
 	if(WIN32)
 		fwk_add_imported_dll(OpenEXRCore-shared OpenEXRCore.dll OpenEXRCore-shared.lib)
-		fwk_add_imported_dll(zstd-shared zstd.dll zstd-shared.lib)
 
 		target_link_libraries(libfwk
-			$<IF:$<CONFIG:Release>,OpenEXRCore,OpenEXRCore-shared>
-			$<IF:$<CONFIG:Release>,zstd,zstd-shared> deflate)
+			$<IF:$<CONFIG:Release>,OpenEXRCore,OpenEXRCore-shared> deflate)
 	else()
-		target_link_libraries(libfwk OpenEXRCore zstd deflate)
+		target_link_libraries(libfwk OpenEXRCore deflate)
 	endif()
 endif()
 

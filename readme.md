@@ -78,7 +78,7 @@ MSVC's debug standard library and improves linking performance.
 <tr><td><a href="https://xiph.org/ogg/">libogg</a>, <a href="https://xiph.org/vorbis/">libvorbis</a></td><td>BSD 3-clause</td><td></td></tr>
 <tr><td><a href="https://github.com/kcat/openal-soft">OpenAL Soft</a></td><td>LGPL 2.0</td><td></td></tr>
 <tr><td><a href="https://github.com/AcademySoftwareFoundation/openexr">openexr-core</a></td><td>BSD 3-clause</td><td>Loading & saving EXR images (enabled with FWK_EXR CMake option)</td></tr>
-<tr><td><a href="https://github.com/facebook/zstd">zstd</a></td><td>BSD</td><td>Required by openexr-core</td></tr>
+<tr><td><a href="https://github.com/facebook/zstd">zstd</a></td><td>BSD</td><td></td></tr>
 <tr><td><a href="https://github.com/ebiggers/libdeflate">libdeflate</a></td><td>MIT</td><td>Required by openexr-core</td></tr>
 <tr><td><a href="https://github.com/ocornut/imgui">dear imgui</a></td><td>MIT</td><td>Git submodule in extern/imgui/; Menu module & perf::Analyzer are only compiled if present</td></tr>
 <tr><td><a href="https://github.com/davea42/libdwarf-code">libdwarf</a></td><td>LGPL 2.1</td><td>Linux only</td></tr>
