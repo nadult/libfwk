@@ -20,6 +20,7 @@ namespace fwk {
 
 namespace detail {
 	Ex<Image> loadSTBI(Stream &);
+	Ex<Image> loadKTX2(Stream &);
 #ifdef FWK_EXR_ENABLED
 	Ex<Image> loadEXR(Stream &);
 #endif
@@ -74,6 +75,8 @@ Ex<Image> Image::load(ZStr file_name, Maybe<ImageFileType> type) {
 }
 
 Ex<Image> Image::load(Stream &sr, ImageFileType type) {
+	if(type == ImageFileType::ktx2)
+		return detail::loadKTX2(sr);
 	if(type == ImageFileType::exr) {
 #ifdef FWK_EXR_ENABLED
 		return detail::loadEXR(sr);

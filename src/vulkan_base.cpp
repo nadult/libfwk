@@ -190,8 +190,8 @@ static const EnumMap<VColorFormat, VFormatInfo> format_infos{{
 	DEF(bc5_rg_unorm,    bc5_rg,   unorm, VK_FORMAT_BC5_UNORM_BLOCK),
 	DEF(bc5_rg_snorm,    bc5_rg,   snorm, VK_FORMAT_BC5_SNORM_BLOCK),
 	// 128-bit 4x4 BC6H
-	DEF(bc6h_rgb_ufloat, bc1_rgb,  ufloat, VK_FORMAT_BC6H_UFLOAT_BLOCK),
-	DEF(bc6h_rgb_sfloat, bc1_rgb,  sfloat, VK_FORMAT_BC6H_SFLOAT_BLOCK),
+	DEF(bc6h_rgb_ufloat, bc6h_rgb, ufloat, VK_FORMAT_BC6H_UFLOAT_BLOCK),
+	DEF(bc6h_rgb_sfloat, bc6h_rgb, sfloat, VK_FORMAT_BC6H_SFLOAT_BLOCK),
 	// 128-bit 4x4 BC7
 	DEF(bc7_rgba_unorm,  bc7_rgba,  unorm, VK_FORMAT_BC7_UNORM_BLOCK),
 	DEF(bc7_rgba_srgb,   bc7_rgba,  srgb,  VK_FORMAT_BC7_SRGB_BLOCK),
