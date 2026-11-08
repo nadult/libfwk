@@ -220,7 +220,7 @@ set(SRC_base
 set(HDR_sys
 	io/file_stream.h
 	io/file_system.h
-	io/gzip_stream.h
+	io/zstd_stream.h
 	io/memory_stream.h
 	io/package_file.h
 	io/stream.h
@@ -243,7 +243,7 @@ set(HDR_sys
 set(SRC_sys
 	io/file_stream.cpp
 	io/file_system.cpp
-	io/gzip_stream.cpp
+	io/zstd_stream.cpp
 	io/memory_stream.cpp
 	io/package_file.cpp
 	io/stream.cpp

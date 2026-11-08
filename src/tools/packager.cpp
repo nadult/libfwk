@@ -2,9 +2,9 @@
 // This file is part of libfwk. See license.txt for details.
 
 #include "fwk/io/file_stream.h"
-#include "fwk/io/gzip_stream.h"
 #include "fwk/io/memory_stream.h"
 #include "fwk/io/package_file.h"
+#include "fwk/io/zstd_stream.h"
 #include "fwk/sys/expected.h"
 
 using namespace fwk;
