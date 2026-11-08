@@ -9,8 +9,8 @@
 #include "fwk/hash_map.h"
 #include "fwk/index_range.h"
 #include "fwk/io/file_system.h"
-#include "fwk/io/zstd_stream.h"
 #include "fwk/io/memory_stream.h"
+#include "fwk/io/zstd_stream.h"
 #include "fwk/math/box.h"
 #include "fwk/math/matrix4.h"
 #include "fwk/math/random.h"
@@ -320,7 +320,7 @@ void testStreams() {
 		auto initial_data = data.reinterpret<char>();
 
 		double time = getTime();
-		auto compr_data = zstdCompress(initial_data).get();
+		auto compr_data = zstdCompress(initial_data, 3).get();
 		compr_time += getTime() - time;
 		compr_bytes += compr_data.size();
 
