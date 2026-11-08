@@ -5,16 +5,36 @@
 
 #include "fwk/io/file_stream.h"
 #include "fwk/io/stream.h"
+#include "fwk/io/zstd_stream.h"
 #include "fwk/str.h"
 #include "fwk/sys/expected.h"
 #include "fwk/vulkan/vulkan_internal.h"
 
 // KTX2 specification: https://registry.khronos.org/KTX/specs/2.0/ktxspec.v2.html
-// Not supported: supercompression, 3D images, image arrays & cube maps.
+// Supported supercompression schemes: none & Zstandard.
+// Not supported: BasisLZ & ZLIB supercompression, 3D images, image arrays & cube maps.
 
 namespace fwk {
 
+DEFINE_ENUM(KTX2Supercompression, none, basis_lz, zstd, zlib);
+
 namespace {
+	Ex<> loadZstdLevel(Stream &sr, i64 compressed_size, Span<char> out) {
+		auto stream = EX_PASS(ZstdStream::decompressor(sr, compressed_size));
+		auto num_bytes = EX_PASS(stream.decompress(out));
+		// Frame epilogue (e.g. checksum) may still be pending when output got filled exactly
+		if(!stream.isFinished() && num_bytes == out.size()) {
+			char extra;
+			auto num_extra = EX_PASS(stream.decompress(Span<char>(&extra, 1)));
+			if(num_extra != 0)
+				return FWK_ERROR("Too much data in Zstd-compressed KTX2 level");
+		}
+		if(num_bytes != out.size() || !stream.isFinished())
+			return FWK_ERROR("Too little data in Zstd-compressed KTX2 level: % (expected: %)",
+							 num_bytes, out.size());
+		return {};
+	}
+
 	struct KTX2Header {
 		void load(Stream &sr) {
 			sr.unpack(vk_format, type_size, pixel_width, pixel_height, pixel_depth, layer_count,
@@ -46,9 +66,11 @@ namespace {
 		sr.loadData(Span<char>(index, sizeof(index)));
 		EXPECT(sr.getValid());
 
-		if(header.supercompression_scheme != 0)
-			return FWK_ERROR("KTX2 supercompression is not supported (scheme: %)",
-							 header.supercompression_scheme);
+		EXPECT(header.supercompression_scheme <= count<KTX2Supercompression>);
+		auto sc_scheme = KTX2Supercompression(header.supercompression_scheme);
+		if(!isOneOf(sc_scheme, KTX2Supercompression::none, KTX2Supercompression::zstd))
+			return FWK_ERROR("KTX2 supercompression scheme % is not supported", sc_scheme);
+
 		if(header.vk_format == 0)
 			return FWK_ERROR(
 				"KTX2 images with VK_FORMAT_UNDEFINED (e.g. Basis Universal) are not supported");
@@ -86,16 +108,24 @@ namespace {
 			int2 block_size = imageBlockSize(*format, level_size);
 			u64 data_size = u64(block_size.x) * block_size.y * unitByteSize(*format);
 
-			if(level.byte_length != data_size)
+			bool is_compressed = sc_scheme != KTX2Supercompression::none;
+			u64 uncompressed_size =
+				is_compressed ? level.uncompressed_byte_length : level.byte_length;
+			if(uncompressed_size != data_size)
 				return FWK_ERROR("Invalid KTX2 data size for mip level %: % (expected: %)", i,
-								 level.byte_length, data_size);
-			if(level.byte_offset > file_size || data_size > file_size - level.byte_offset)
+								 uncompressed_size, data_size);
+			if(level.byte_offset > file_size || level.byte_length > file_size - level.byte_offset)
 				return FWK_ERROR("KTX2 data for mip level % is out of file bounds", i);
 
 			PodVector<u8> data(data_size);
 			sr.seek(file_offset + i64(level.byte_offset));
-			sr.loadData(Span<u8>(data.data(), data.size()));
-			EXPECT(sr.getValid());
+			if(sc_scheme == KTX2Supercompression::zstd) {
+				EXPECT(loadZstdLevel(sr, i64(level.byte_length),
+									 Span<char>((char *)data.data(), data.size())));
+			} else {
+				sr.loadData(Span<u8>(data.data(), data.size()));
+				EXPECT(sr.getValid());
+			}
 			out.emplace_back(std::move(data), level_size, *format);
 		}
 
