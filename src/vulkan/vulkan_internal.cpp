@@ -63,6 +63,11 @@ VkDescriptorPool createVkDescriptorPool(VkDevice device, EnumMap<VDescriptorType
 		if(type_counts[type] > 0)
 			sizes[num_sizes++] = {toVk(type), type_counts[type]};
 
+	// On some platforms (Windows + RTX 6700XT) it's illegal to create an empty descriptor pool
+	// VUID-VkDescriptorPoolCreateInfo-poolSizeCount-arraylength
+	if(num_sizes == 0)
+		sizes[num_sizes++] = {VK_DESCRIPTOR_TYPE_SAMPLER, 1};
+
 	VkDescriptorPoolCreateInfo ci{VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO};
 	ci.poolSizeCount = num_sizes;
 	ci.pPoolSizes = sizes.data();
