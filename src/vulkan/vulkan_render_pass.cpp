@@ -14,6 +14,19 @@
 
 namespace fwk {
 
+static VkImageLayout toVkSubpassLayout(VImageLayout layout) {
+	switch(layout) {
+	case VImageLayout::depth_att:
+	case VImageLayout::stencil_att:
+		return VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL;
+	case VImageLayout::depth_ro:
+	case VImageLayout::stencil_ro:
+		return VK_IMAGE_LAYOUT_DEPTH_STENCIL_READ_ONLY_OPTIMAL;
+	default:
+		return toVk(layout);
+	}
+}
+
 VulkanRenderPass::VulkanRenderPass(VkRenderPass handle, VObjectId id)
 	: VulkanObjectBase(handle, id) {}
 VulkanRenderPass ::~VulkanRenderPass() {
@@ -75,7 +88,7 @@ PVRenderPass VulkanRenderPass::create(VulkanDevice &device, CSpan<VAttachment> a
 		dst.initialLayout = toVk(sync.initialLayout());
 		dst.finalLayout = toVk(sync.finalLayout());
 		vk_attachment_refs[depth_index].attachment = depth_index;
-		vk_attachment_refs[depth_index].layout = toVk(sync.subpassLayout());
+		vk_attachment_refs[depth_index].layout = toVkSubpassLayout(sync.subpassLayout());
 		subpass.pDepthStencilAttachment = vk_attachment_refs.data() + depth_index;
 	}
 
