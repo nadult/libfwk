@@ -232,6 +232,7 @@ VkSemaphore VulkanCommandQueue::finishFrame(VkSemaphore image_available_semaphor
 	m_last_pipeline_layout.reset();
 	m_last_bind_point = VBindPoint::graphics;
 	m_last_viewport = {};
+	m_pending_descr_sets_mask = 0;
 	return signalled_semaphore;
 }
 
@@ -299,18 +300,33 @@ void VulkanCommandQueue::bind(PVPipelineLayout layout, VBindPoint bind_point) {
 	m_last_bind_point = bind_point;
 }
 
-void VulkanCommandQueue::bindDS(int index, const VDescriptorSet &ds) {
-	vkCmdBindDescriptorSets(m_cur_cmd_buffer, toVk(m_last_bind_point), m_last_pipeline_layout,
-							uint(index), 1, &ds.handle, 0, nullptr);
-}
-
 VDescriptorSet VulkanCommandQueue::bindDS(int index) {
 	DASSERT(m_last_pipeline_layout);
 	CSpan<VDSLId> dsls = m_last_pipeline_layout->descriptorSetLayouts();
 	DASSERT(index >= 0 && index < dsls.size());
 	auto ds = m_device.acquireSet(dsls[index]);
-	bindDS(index, ds);
+	m_pending_descr_sets[index] = {ds.handle, m_last_bind_point};
+	m_pending_descr_sets_mask |= 1u << index;
 	return ds;
+}
+
+void VulkanCommandQueue::flushPendingDS() {
+	if(!m_pending_descr_sets_mask)
+		return;
+	DASSERT(m_last_pipeline_layout);
+
+	u32 remaining_mask = 0;
+	for(u32 bits = m_pending_descr_sets_mask; bits; bits &= bits - 1) {
+		int index = countTrailingZeros(bits);
+		auto &pending = m_pending_descr_sets[index];
+		if(pending.bind_point != m_last_bind_point) {
+			remaining_mask |= 1u << index;
+			continue;
+		}
+		vkCmdBindDescriptorSets(m_cur_cmd_buffer, toVk(m_last_bind_point), m_last_pipeline_layout,
+								uint(index), 1, &pending.handle, 0, nullptr);
+	}
+	m_pending_descr_sets_mask = remaining_mask;
 }
 
 void VulkanCommandQueue::setPushConstants(u32 offset, VShaderStages stages, CSpan<char> data) {
@@ -376,12 +392,14 @@ void VulkanCommandQueue::bind(PVPipeline pipeline) {
 void VulkanCommandQueue::draw(int num_vertices, int num_instances, int first_vertex,
 							  int first_instance) {
 	PASSERT(m_status == Status::frame_running);
+	flushPendingDS();
 	vkCmdDraw(m_cur_cmd_buffer, num_vertices, num_instances, first_vertex, first_instance);
 }
 
 void VulkanCommandQueue::drawIndexed(int num_indices, int num_instances, int first_index,
 									 int first_instance, int vertex_offset) {
 	PASSERT(m_status == Status::frame_running);
+	flushPendingDS();
 	vkCmdDrawIndexed(m_cur_cmd_buffer, num_indices, num_instances, first_index, vertex_offset,
 					 first_instance);
 }
@@ -444,11 +462,13 @@ void VulkanCommandQueue::endRenderPass() {
 
 void VulkanCommandQueue::dispatchCompute(int3 size) {
 	PASSERT(m_status == Status::frame_running);
+	flushPendingDS();
 	vkCmdDispatch(m_cur_cmd_buffer, size.x, size.y, size.z);
 }
 
 void VulkanCommandQueue::dispatchComputeIndirect(VBufferSpan<char> buffer_span, u32 offset) {
 	PASSERT(m_status == Status::frame_running);
+	flushPendingDS();
 	vkCmdDispatchIndirect(m_cur_cmd_buffer, buffer_span.buffer(),
 						  buffer_span.byteOffset() + offset);
 }

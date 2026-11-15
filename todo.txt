@@ -7,9 +7,11 @@ do (almost) what we want.
 When adding new functionalities consider first if they are worth it. If you add 40KB of code
 to simplify 20 lines into 10, maybe it's not worth it...
 
+- fix imgui warnings ?
+
+- Better descriptor management (with explicit pipeline layouts & dsl)
+- Checking that descriptors are not modified after actual binding
 - Option to mark Ptrs that they are non-null? New type like RVImageView?
-- Consider replacing mechanism for updating descriptors so that it won't require
-  update_after_bind (does it affect performance?)
 - FilePath() should be empty; FilePath::empty() always returns false;
   This class could be modernized or maybe even replaced with std::filesystem;
   Make a wrapper over std::filesystem with Expected?

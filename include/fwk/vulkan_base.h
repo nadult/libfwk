@@ -125,8 +125,7 @@ DEFINE_ENUM(VTexFilter, nearest, linear);
 DEFINE_ENUM(VTexAddress, repeat, mirror_repeat, clamp_to_edge, clamp_to_border,
 			mirror_clamp_to_edge);
 
-DEFINE_ENUM(VDeviceFeature, memory_budget, subgroup_size_control, shader_clock, ray_tracing,
-			descriptor_update_after_bind);
+DEFINE_ENUM(VDeviceFeature, memory_budget, subgroup_size_control, shader_clock, ray_tracing);
 using VDeviceFeatures = EnumFlags<VDeviceFeature>;
 
 DEFINE_ENUM(VMemoryBlockType, slab, unmanaged, frame, invalid);
@@ -370,9 +369,6 @@ struct VDeviceSetup {
 	vector<VQueueSetup> queues;
 	VMemoryManagerSetup memory;
 	Dynamic<VkPhysicalDeviceFeatures> features;
-
-	// Mechanisms for descriptor updates in libfwk depend on the ability to update them after binding.
-	bool allow_descriptor_update_after_bind = true;
 };
 
 // Layout transitions:
