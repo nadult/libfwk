@@ -16,7 +16,7 @@ namespace fwk {
 
 class VulkanDescriptorManager {
   public:
-	VulkanDescriptorManager(VkDevice, bool update_after_bind);
+	VulkanDescriptorManager(VkDevice);
 	FWK_IMMOVABLE_CLASS(VulkanDescriptorManager);
 
 	VDSLId getEmptyLayout() const { return m_empty_dsl_id; }
@@ -66,12 +66,10 @@ class VulkanDescriptorManager {
 	vector<VDescriptorBindingInfo> m_declarations;
 	vector<DSL> m_dsls;
 	vector<VkDescriptorPool> m_deferred_releases[VulkanLimits::num_swap_frames];
-	vector<VkDescriptorBindingFlagsEXT> m_binding_flags;
 	HashMap<HashedDSL, VDSLId> m_hash_map;
 	VDSLId m_empty_dsl_id = VDSLId(0);
 
 	uint m_swap_frame_index = 0;
-	bool m_update_after_bind = false;
 };
 
 }

@@ -88,10 +88,11 @@ class VulkanCommandQueue {
 	void bindIndices(VBufferSpan<u32>);
 
 	void bind(PVPipelineLayout, VBindPoint = VBindPoint::graphics);
-	// Binds given descriptor set
-	void bindDS(int index, const VDescriptorSet &);
-	// Acquires new descriptor set and immediately binds it
+
+	// Acquires new descriptor set and adds it to pending bindings. Returned set can be immediately
+	// filled, but must not be modified after the next draw / dispatch.
 	VDescriptorSet bindDS(int index);
+	void flushPendingDS();
 
 	void setPushConstants(u32 offset, VShaderStages, CSpan<char> data);
 	template <class T> void setPushConstants(u32 offset, VShaderStages stages, CSpan<T> data) {
@@ -217,10 +218,8 @@ class VulkanCommandQueue {
 		u64 last_frame_index;
 	};
 
-	struct CmdBindDescriptorSet {
-		uint index = 0;
-		VkPipelineLayout pipe_layout = nullptr;
-		VkDescriptorSet set = nullptr;
+	struct PendingDescriptorSet {
+		VkDescriptorSet handle = nullptr;
 		VBindPoint bind_point = VBindPoint::graphics;
 	};
 
@@ -233,6 +232,10 @@ class VulkanCommandQueue {
 	PVPipelineLayout m_last_pipeline_layout;
 	VBindPoint m_last_bind_point = VBindPoint::graphics;
 	IRect m_last_viewport;
+
+	PendingDescriptorSet m_pending_descr_sets[VulkanLimits::max_descr_sets];
+	static_assert(VulkanLimits::max_descr_sets <= 32);
+	u32 m_pending_descr_sets_mask = 0;
 
 	VulkanDevice &m_device;
 	VQueue m_queue;
